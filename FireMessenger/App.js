@@ -62,7 +62,7 @@ const App = () => {
 export default () => {
   return <AuthProvider>
     <ThemeProvider>
-      <App />
+        <App />
     </ThemeProvider>
   </AuthProvider>
 }

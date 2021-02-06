@@ -32,7 +32,7 @@ const HomeScreen = (props) => {
     const ImageComponent = (style) => {
         return <Image
             style={{ ...style.style, backgroundColor: 'white' }}
-            source={state.photURL ? { uri: state.photoURL } : require('../assets/userImage.png')}
+            source={state.photoURL ? { uri: state.photoURL } : require('../assets/userImage.png')}
         />
     }
 

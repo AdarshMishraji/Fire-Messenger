@@ -1,5 +1,5 @@
 import React, { useContext, useState, useEffect } from 'react';
-import { View, FlatList, Text, StyleSheet, TextInput, TouchableOpacity, BackHandler, Image } from 'react-native';
+import { View, FlatList, Text, StyleSheet, TextInput, TouchableOpacity, BackHandler, Image, Modal, ScrollView } from 'react-native';
 import Button from '../components/Button';
 import firestore from '@react-native-firebase/firestore';
 import { Context as AuthContext } from '../contexts/AuthContext';
@@ -11,6 +11,7 @@ const ChatsScreen = (props) => {
     const [newMessage, setNewMessage] = useState('');
     const [itemToDelete, setItemToDelete] = useState([]);
     const [selection, setSelection] = useState(false);
+    const [showDetails, setShowDetails] = useState(null);
 
     React.useLayoutEffect(
         () => {
@@ -19,65 +20,79 @@ const ChatsScreen = (props) => {
                     title: props.route.params.item.data.userName,
                 }
             )
-        }
+        }, []
     )
 
+    const fetchData = async () => {
+        await firestore()
+            .collection('users')
+            .doc(state.email) //  current user's email address.
+            .collection('active_users')
+            .doc(props.route.params.item.data.email) // another user's email address.
+            .collection('messages')
+            .orderBy('sendAtTimeStamp', 'asc')
+            .onSnapshot(
+                async (docSnapShot) => {
+                    setMessages(
+                        docSnapShot.docs.map(
+                            (msg) => {
+                                return msg.data();
+                            }
+                        )
+                    )
+                    await firestore() // for seen feature.
+                        .collection('users')
+                        .doc(props.route.params.item.data.email)
+                        .collection('active_users')
+                        .doc(state.email)
+                        .collection('messages')
+                        .where('senderEmail', '==', props.route.params.item.data.email)
+                        .where('seenAt', '==', 'null')
+                        .where('visibility', '==', 'true')
+                        .get()
+                        .then(
+                            (snapshot) => {
+                                for (const doc of snapshot.docs) {
+                                    if (snapshot.docs.length == 0) break;
+                                    else {
+                                        doc.ref.update(
+                                            {
+                                                seenAt: new Date().toString()
+                                            }
+                                        )
+                                    }
+                                }
+                            }
+                        )
+
+                }
+            )
+    }
 
     useEffect(
         () => {
-            const fetchData = () => {
-                firestore()
-                    .collection('users')
-                    .doc(state.email) //  current user's email address.
-                    .collection('active_users')
-                    .doc(props.route.params.item.data.email) // another user's email address.
-                    .collection('messages')
-                    .orderBy('sendAt', 'asc')
-                    .onSnapshot(
-                        (docSnapShot) => {
-                            setMessages(
-                                docSnapShot.docs.map(
-                                    (msg) => {
-                                        return msg.data();
-                                    }
-                                )
-                            )
-                            firestore() // for seen feature.
-                                .collection('users')
-                                .doc(props.route.params.item.data.email)
-                                .collection('active_users')
-                                .doc(state.email)
-                                .collection('messages')
-                                .where('senderEmail', '==', props.route.params.item.data.email)
-                                .where('seenAt', '==', 'null')
-                                .get()
-                                .then(
-                                    (snapshot) => {
-                                        console.log('inside seen')
-                                        console.log('seen', snapshot.docs.map(element => element.data), snapshot.docs.length);
-                                        for (const doc of snapshot.docs) {
-                                            if (snapshot.docs.length != 0) break;
-                                            doc.ref.update(
-                                                {
-                                                    seenAt: new Date().toString()
-                                                }
-                                            )
-                                        }
-                                    }
-                                )
-
-                        }
-                    )
+            fetchData()
+            return () => {
+                BackHandler.removeEventListener('hardwareBackPress')
             }
-            return () => { fetchData() };
         }, []
     )
+
+    BackHandler.addEventListener('hardwareBackPress', () => {
+        if (selection) {
+            setSelection(false);
+        }
+        else {
+            setSelection(true);
+        }
+    })
 
     const onSend = async () => {
         const packet = {
             senderEmail: state.email,
             recieverEmail: props.route.params.item.data.email,
             message: newMessage,
+            sendAtTimeStamp: new Date().getTime().toString(),
             sendAt: new Date().toString(),
             visibility: 'true',
             seenAt: 'null'
@@ -100,19 +115,6 @@ const ChatsScreen = (props) => {
         console.log('messages', messages);
         console.log('toDelete', itemToDelete);
         const resultantData = [];
-        const senderRef = firestore()
-            .collection('users')
-            .doc(messages[i].senderEmail)
-            .collection('active_users')
-            .doc(messages[i].recieverEmail)
-            .collection('messages')
-
-        const receiverRef = firestore()
-            .collection('users')
-            .doc(messages[i].recieverEmail)
-            .collection('active_users')
-            .doc(messages[i].senderEmail)
-            .collection('messages')
 
         for (let i = 0; i < messages.length; i++) {
             for (let j = 0; j < itemToDelete.length; j++) {
@@ -120,17 +122,32 @@ const ChatsScreen = (props) => {
                     resultantData.push(messages[i]);
                 }
                 else {
-
+                    console.log('message to delete', messages[i])
                     if (itemToDelete[j].sender == 'me') {
-                        await senderRef
-                            .doc(messages[i].sendAt.toString())
+                        await firestore()
+                            .collection('users')
+                            .doc(state.email)
+                            .collection('active_users')
+                            .doc(props.route.params.item.data.email)
+                            .collection('messages')
+                            .doc(messages[i].sendAtTimeStamp.toString())
                             .update({ visibility: 'false' })
-                        await receiverRef
-                            .doc(messages[i].sendAt.toString())
+                        await firestore()
+                            .collection('users')
+                            .doc(props.route.params.item.data.email)
+                            .collection('active_users')
+                            .doc(state.email)
+                            .collection('messages')
+                            .doc(messages[i].sendAtTimeStamp.toString())
                             .update({ visibility: 'false' })
                     }
                     else {
-                        await receiverRef
+                        await firestore()
+                            .collection('users')
+                            .doc(props.route.params.item.data.email)
+                            .collection('active_users')
+                            .doc(state.email)
+                            .collection('messages')
                             .doc(messages[i].createdAt.toString())
                             .update({ visibility: 'false' })
                     }
@@ -156,7 +173,7 @@ const ChatsScreen = (props) => {
         itemToDelete.forEach(
             (data) => {
                 if (data.index != index) {
-                    items.push(index)
+                    items.push(data)
                 }
             }
         )
@@ -181,16 +198,17 @@ const ChatsScreen = (props) => {
             style={{
                 height: 40,
                 width: 40,
-                borderRadius: 30
+                borderRadius: 30,
+                backgroundColor: 'white'
             }}
         />
     }
 
-    const SenderMessageComponent = ({ color, item }) => {
+    const SenderMessageComponent = ({ color, item, index }) => {
         return <View style={{ paddingLeft: 100, backgroundColor: color, flexDirection: 'row', justifyContent: 'flex-end' }}>
             <View style={styles.senderMessageStyle}>
                 <Text
-                    style={{ fontSize: 20 }}
+                    style={{ fontSize: 20, textAlign: 'right' }}
                     onLongPress={
                         () => {
                             appendIndex({ index, sender: 'me' });
@@ -199,7 +217,7 @@ const ChatsScreen = (props) => {
                     }
                     onPress={
                         () => {
-                            console.log(selection);
+                            console.log('selection', selection);
                             if (selection) {
                                 if (search(index)) {
                                     console.log('true inside onPress')
@@ -214,12 +232,13 @@ const ChatsScreen = (props) => {
                 >{item.message}
                 </Text>
                 <Text style={styles.seenAtStyle}>{item.seenAt != 'null' ? 'Seen' : 'Not Seen'}</Text>
+                {item.seenAt != 'null' ? <Text>{item.seenAt.substr(4, 20)}</Text> : null}
             </View>
             <SenderImageComponent />
         </View>
     }
 
-    const RecieverMessageComponent = ({ color, item }) => {
+    const RecieverMessageComponent = ({ color, item, index }) => {
         return <View style={{ paddingRight: 100, backgroundColor: color, flexDirection: 'row', justifyContent: 'flex-start' }}>
             <RecieverImageComponent />
             <Text
@@ -233,11 +252,14 @@ const ChatsScreen = (props) => {
                 onPress={
                     () => {
                         if (selection) {
-                            if ({ index, sender: 'not_me' } in itemToDelete) {
-                                deleteIndex(index)
-                            }
-                            else {
-                                appendIndex({ index, sender: 'not_me' });
+                            if (selection) {
+                                if (search(index)) {
+                                    console.log('true inside onPress')
+                                    deleteIndex(index);
+                                }
+                                else {
+                                    appendIndex({ index, sender: 'me' });
+                                }
                             }
                         }
                     }
@@ -246,111 +268,98 @@ const ChatsScreen = (props) => {
         </View>
     }
 
-    const InputWidget = () => {
-        return <View style={styles.inputWidget}>
-            <TextInput
-                style={styles.inputStyle}
-                value={newMessage}
-                onChangeText={
-                    (newMsg) => {
-                        setNewMessage(newMsg);
-                    }
-                }
-                placeholderTextColor='white'
-                placeholder='Type your message...'
-            />
-            <TouchableOpacity
-                style={styles.sendButtonStyle}
-                onPress={
-                    () => {
-                        onSend();
-                        setNewMessage('');
-                    }
-                }
-            >
-                <Text style={{ color: 'white' }}>Send</Text>
-            </TouchableOpacity>
-        </View>
-    }
-
     return (
-        <View style={styles.deleteButtonStyle}>
+
+        <View style={styles.rootStyle}>
             {itemToDelete.length != 0
-                ? <View style={{ marginHorizontal: 10 }}>
+                ? <View
+                    style={{
+                        flexDirection: 'row',
+                        justifyContent: 'space-around'
+                    }}
+                >
                     <Button
                         label='Delete'
                         onPressCallback={deleteChats}
+                        visible={true}
+                        additionStyling={{ marginHorizontal: 10, width: '40%' }}
+                    />
+                    <Button
+                        label='Info'
+                        onPressCallback={() => setShowDetails(true)}
+                        visible={itemToDelete.length == 1}
+                        additionStyling={{ marginHorizontal: 10, width: '40%' }}
                     />
                 </View>
                 : null
             }
             <View style={{ flex: 1, padding: 10 }}>
+                <Modal
+                    visible={showDetails}
+                    transparent={true}
+                >
+                    <View
+                        style={{
+                            flex: 1,
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            backgroundColor: 'rgba(0,0,0,0.3)',
+                        }}
+                    >
+                        <View
+                            style={{
+                                padding: 15,
+                                borderWidth: 1,
+                                width: 350,
+                                backgroundColor: 'white',
+                                borderRadius: 20,
+                                height: 250
+                            }}
+                        >
+                            <ScrollView
+                                style={{
+                                    flex: 1,
+                                }}
+                            >
+                                {itemToDelete.length ?
+                                    <View>
+                                        <Text>Message: {messages[itemToDelete[0].index].message}</Text>
+                                        <Text>Sender Email: {messages[itemToDelete[0].index].senderEmail}</Text>
+                                        <Text>Receiver Email: {messages[itemToDelete[0].index].recieverEmail}</Text>
+                                        <Text>Send At: {messages[itemToDelete[0].index].sendAt}</Text>
+                                        <Text>Seen At: {messages[itemToDelete[0].index].seenAt != 'null' ? messages[itemToDelete[0].index].seenAt : 'Not seen yet'}</Text>
+                                    </View> : null
+                                }
+                            </ScrollView>
+                            <Button
+                                label='Close'
+                                onPressCallback={
+                                    () => {
+                                        setShowDetails(false)
+                                    }
+                                }
+                                visible={true}
+                            />
+                        </View>
+                    </View>
+                </Modal>
                 <FlatList
                     data={messages}
                     keyExtractor={
-                        item => item.sendAt.toString()
+                        item => item.sendAtTimeStamp.toString()
                     }
 
                     renderItem={
                         ({ item, index }) => {
                             if (item.visibility == 'true') {
-                                var color = search(index) == true ? 'rgba(0,0,0,0.3)' : ''
+                                var color = search(index) == true ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0)'
                                 return <View>
-                                    {item.senderEmail == state.email
-                                        ? <SenderMessageComponent color={color} item={item} />
-                                        // <View style={{ paddingLeft: 100, backgroundColor: color }}>
-                                        //     <View style={styles.senderMessageStyle}>
-                                        //         <Text
-                                        //             style={{ fontSize: 20 }}
-                                        //             onLongPress={
-                                        //                 () => {
-                                        //                     appendIndex({ index, sender: 'me' });
-                                        //                     setSelection(true);
-                                        //                 }
-                                        //             }
-                                        //             onPress={
-                                        //                 () => {
-                                        //                     console.log(selection);
-                                        //                     if (selection) {
-                                        //                         if (search(index)) {
-                                        //                             console.log('true inside onPress')
-                                        //                             deleteIndex(index);
-                                        //                         }
-                                        //                         else {
-                                        //                             appendIndex({ index, sender: 'me' });
-                                        //                         }
-                                        //                     }
-                                        //                 }
-                                        //             }
-                                        //         >{item.message}
-                                        //         </Text>
-                                        //         <Text style={styles.seenAtStyle}>{item.seenAt != 'null' ? 'Seen' : 'Not Seen'}</Text>
-                                        //     </View>
-                                        // </View>
-                                        : <RecieverMessageComponent color={color} item={item} />
-                                        // <View style={{ paddingRight: 100 }}>
-                                        //     <Text
-                                        //         style={styles.recieverMessageStyle}
-                                        //         onLongPress={
-                                        //             () => {
-                                        //                 appendIndex({ index, sender: 'not_me' });
-                                        //                 setSelection(true);
-                                        //             }
-                                        //         }
-                                        //         onPress={
-                                        //             () => {
-                                        //                 if (selection) {
-                                        //                     if ({ index, sender: 'not_me' } in itemToDelete) {
-                                        //                         deleteIndex(index)
-                                        //                     }
-                                        //                     else {
-                                        //                         appendIndex({ index, sender: 'not_me' });
-                                        //                     }
-                                        //                 }
-                                        //             }
-                                        //         }
-                                        //     >{item.message}</Text>
-                                        // </View>
+                                    {
+                                        item.senderEmail == state.email
+                                            ?
+                                            <SenderMessageComponent color={color} item={item} index={index} />
+                                            :
+                                            <RecieverMessageComponent color={color} item={item} index={index} />
                                     }
                                 </View>
                             }
@@ -390,9 +399,10 @@ const ChatsScreen = (props) => {
 
 const styles = StyleSheet.create(
     {
-        deleteButtonStyle: {
+        rootStyle: {
             flex: 1,
-            justifyContent: 'flex-end'
+            justifyContent: 'space-between'
+
         },
         senderMessageStyle: {
             borderRadius: 10,

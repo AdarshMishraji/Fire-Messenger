@@ -1,5 +1,5 @@
-import React, { useContext, useReducer, useState } from 'react';
-import { View, ScrollView, StyleSheet } from 'react-native';
+import React, { useContext, useLayoutEffect, useReducer, useState } from 'react';
+import { View, ScrollView, StyleSheet, Image, TouchableOpacity } from 'react-native';
 import Input from '../components/Input';
 import ErrorMsg from '../components/ErrorMsg';
 import Button from '../components/Button';
@@ -58,7 +58,6 @@ const SignupScreen = (props) => {
 
     const signupDetailsSetter = {
         setData: (from, data) => {
-            console.log(data);
             setOtherAuthLoader(false);
             props.navigation.navigate('AuthProvider', { from, data });
         },
@@ -97,9 +96,7 @@ const SignupScreen = (props) => {
                 photoURL: null
             }
             setAuthDetails(dataToSend);
-            console.log('data for async storage dagv', dataToSend);
             await AsyncStorage.setItem('activeUser', JSON.stringify(dataToSend));
-            console.log('all done');
             setSignupLoader(false);
             props.navigation.navigate('Home');
         }
@@ -146,8 +143,6 @@ const SignupScreen = (props) => {
             dispatch({ type: 'set_error', payload: 'Email not valid' });
         }
     }
-
-    console.log(state);
 
     return <View style={styles.rootStyle}>
         <ScrollView showsVerticalScrollIndicator={false}>

@@ -5,7 +5,7 @@ router.post('/sendMessage',
     async (req, res) => {
         const { message, currentUserDetails, receiverDetails } = req.body;
         console.log(message, currentUserDetails, receiverDetails);
-        const currentTimeStamp = new Date().getTime().toString();
+        const currentTimeStamp = message.sendAt;
         const senderRef = firebase.firestore()
             .collection('users')
             .doc(currentUserDetails.email)
@@ -21,12 +21,12 @@ router.post('/sendMessage',
         try {
             await senderRef
                 .collection('messages')
-                .doc(currentTimeStamp)
+                .doc(message.sendAtTimeStamp.toString())
                 .set(message);
 
             await receiverRef
                 .collection('messages')
-                .doc(currentTimeStamp)
+                .doc(message.sendAtTimeStamp.toString())
                 .set(message);
 
             await senderRef

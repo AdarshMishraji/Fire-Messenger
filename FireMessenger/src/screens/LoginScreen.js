@@ -59,7 +59,6 @@ const LoginScreen = (props) => {
                     userName: data.userName
                 }
                 setAuthDetails(dataToSend);
-                console.log('data for async storage, rsfgear', dataToSend);
                 await AsyncStorage.setItem('activeUser', JSON.stringify(dataToSend));
                 setLoader(false);
                 props.navigation.navigate('Home');

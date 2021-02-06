@@ -38,6 +38,8 @@ const Input = ({ label, value, onChangeTextCallback, type, style }) => {
             }}
             secureTextEntry={type && type === 'password' ? true : false}
             keyboardType={type && type === 'phoneNumber' ? 'phone-pad' : 'default'}
+            autoCapitalize='none'
+            autoCorrect={false}
         />
     </View>
 }
@@ -45,7 +47,7 @@ const Input = ({ label, value, onChangeTextCallback, type, style }) => {
 const styles = StyleSheet.create(
     {
         inputStyle: {
-            borderWidth: 1.5,
+            // borderWidth: 1.5,
             height: 45,
             width: '93%',
             fontSize: 20,

@@ -14,7 +14,7 @@ export default FacebookAuthSignup = async (setData, setError) => {
                 throw 'Something went wrong for obtaining access token';
             }
             else {
-                await fireMessengerAPI.post('/auth/signup/withFacebookToken', { token: data.accessToken })
+                await fireMessengerAPI().post('/auth/signup/withFacebookToken', { token: data.accessToken })
                     .then(
                         (value) => {
                             const data = jwt_decode(value.data.token);

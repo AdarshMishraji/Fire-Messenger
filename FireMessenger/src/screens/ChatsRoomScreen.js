@@ -1,4 +1,4 @@
-import React, { useEffect, useReducer, useContext, useLayoutEffect } from 'react';
+import React, { useEffect, useReducer, useContext, useLayoutEffect, useState } from 'react';
 import { View, FlatList, Modal, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import Button from '../components/Button';
 import { Context as AuthContext } from '../contexts/AuthContext';
@@ -38,6 +38,7 @@ const ChatsRoomScreen = (props) => {
     )
 
     const { state } = useContext(AuthContext);
+    const [spinner, setSpinner] = useState(true);
 
     const getActiveUsers = async () => {
         await fireMessengerAPI.post('/users/fetchActiveUsers',
@@ -47,7 +48,6 @@ const ChatsRoomScreen = (props) => {
         )
             .then(
                 (value) => {
-                    console.log(value.data, value.status);
                     dispatch({ type: 'set_active_users', payload: value.data.users });
                 }
             )
@@ -84,6 +84,7 @@ const ChatsRoomScreen = (props) => {
             const unsuscribe = props.navigation.addListener('focus', () => {
                 getAllUsers();
                 getActiveUsers();
+                setTimeout(() => setSpinner(false), 5000)
             })
             return () => {
                 unsuscribe;
@@ -94,7 +95,7 @@ const ChatsRoomScreen = (props) => {
 
     return <View style={{ flex: 1 }}>
         <Spinner
-            isVisible={usersContainer.activeUsers.length != 0 || usersContainer.users.length != 0 ? false : true}
+            isVisible={!spinner || usersContainer.activeUsers.length != 0 || usersContainer.users.length != 0 ? false : true}
         />
         <Modal
             visible={usersContainer.showUsers}
@@ -112,82 +113,86 @@ const ChatsRoomScreen = (props) => {
                     style={{
                         padding: 10,
                         borderWidth: 1,
-                        height: 500,
                         width: 300,
                         backgroundColor: 'white',
-                        borderRadius: 20
+                        borderRadius: 20,
+                        height: 500
                     }}
-                >
-                    <View
-                        style={{
-                            flex: 1
-                        }}
                     >
-                        <Text
-                            style={{
-                                fontWeight: 'bold',
-                                fontSize: 20,
-                                alignSelf: 'center',
-                                marginBottom: 10
-                            }}
-                        > Select the Reciever </Text>
-                        <FlatList
-                            data={usersContainer.users}
-                            keyExtractor={
-                                (item) => {
-                                    return item.data.email
-                                }
-                            }
-                            renderItem={
-                                ({ item }) => {
-                                    if (item.data.email != state.email) {
-                                        return (
-                                            <View style={styles.userChatContainer}>
-                                                <TouchableOpacity
-                                                    style={styles.userChatButton}
-                                                    onPress={
-                                                        () => {
-                                                            dispatch({ type: 'set_show_users', payload: false });
-                                                            props.navigation.navigate('Chat', { item });
-                                                        }
-                                                    }
-                                                >
-                                                    <View style={{
-                                                        flexDirection: 'row',
-                                                        alignItems: 'center'
-                                                    }}>
-                                                        <Image
-                                                            source={require('../assets/userImage.png')}
-                                                            style={{
-                                                                height: 50,
-                                                                width: 50,
-                                                                borderRadius: 30,
-                                                                margin: 10
-                                                            }}
-                                                        />
-                                                        <Text style={{ fontSize: 20, color: 'black' }}>{item.data.userName}</Text>
+                    {
+                        usersContainer.users.length == 0
+                            ? <Text style={{ fontSize: 30, fontWeight: 'bold', alignSelf: 'center', color: 'black' }}>No Users</Text>
+                            :
+                            <View
+                                style={{
+                                    flex: 1,
+                                }}
+                            >
+                                <Text
+                                    style={{
+                                        fontWeight: 'bold',
+                                        fontSize: 20,
+                                        alignSelf: 'center',
+                                        marginBottom: 10
+                                    }}
+                                > Select the Reciever </Text>
+                                <FlatList
+                                    data={usersContainer.users}
+                                    keyExtractor={
+                                        (item) => {
+                                            return item.data.email
+                                        }
+                                    }
+                                    renderItem={
+                                        ({ item }) => {
+                                            if (item.data.email != state.email) {
+                                                return (
+                                                    <View style={styles.userChatContainer}>
+                                                        <TouchableOpacity
+                                                            style={styles.userChatButton}
+                                                            onPress={
+                                                                () => {
+                                                                    dispatch({ type: 'set_show_users', payload: false });
+                                                                    props.navigation.navigate('Chat', { item });
+                                                                }
+                                                            }
+                                                        >
+                                                            <View style={{
+                                                                flexDirection: 'row',
+                                                                alignItems: 'center'
+                                                            }}>
+                                                                <Image
+                                                                    source={require('../assets/userImage.png')}
+                                                                    style={{
+                                                                        height: 50,
+                                                                        width: 50,
+                                                                        borderRadius: 30,
+                                                                        margin: 10
+                                                                    }}
+                                                                />
+                                                                <Text style={{ fontSize: 20, color: 'black' }}>{item.data.userName}</Text>
+                                                            </View>
+                                                        </TouchableOpacity>
                                                     </View>
-                                                </TouchableOpacity>
-                                            </View>
-                                        )
+                                                )
+                                            }
+                                            else {
+                                                return null;
+                                            }
+                                        }
                                     }
-                                    else {
-                                        return null;
-                                    }
-                                }
-                            }
-                        />
+                                />
+                            </View>
+                    }
                         <Button
-                            label='Cancel'
+                        label='Close'
                             onPressCallback={
                                 () => {
                                     dispatch({ type: 'set_show_users', payload: false });
                                 }
                             }
                             visible={true}
-                        />
-
-                    </View>
+                    />
                 </View>
             </View>
         </Modal>
@@ -211,7 +216,6 @@ const ChatsRoomScreen = (props) => {
             renderItem={
                 ({ item }) => {
                     if (item.email != state.email) {
-                        console.log('data inside activeUsers', item)
                         return (
                             <View style={styles.userChatContainer}>
                                 <TouchableOpacity
@@ -231,9 +235,10 @@ const ChatsRoomScreen = (props) => {
                                             style={{
                                                 height: 50,
                                                 width: 50,
-                                                borderRadius: 30,
+                                                borderRadius: 20,
                                                 marginVertical: 10,
-                                                marginRight: 10
+                                                marginRight: 10,
+                                                backgroundColor: 'white'
                                             }}
                                         />
                                         <View>
