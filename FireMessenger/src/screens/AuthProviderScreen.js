@@ -7,28 +7,28 @@ import { Context as AuthContext } from '../contexts/AuthContext';
 import { EmailPasswordAuthSignup } from '../auth/EmailPasswordAuth';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const reducer = (state, action) => {
+const reducer = (authState, action) => {
     switch (action.type) {
         case 'set_password': {
-            return { ...state, password: action.payload };
+            return { ...authState, password: action.payload };
         }
         case 'set_confirm_password': {
             console.log(action.payload);
-            return { ...state, confirmPassword: action.payload };
+            return { ...authState, confirmPassword: action.payload };
         }
         case 'set_error': {
-            return { ...state, error: action.payload };
+            return { ...authState, error: action.payload };
         }
         default: {
             console.log('default case');
-            return state;
+            return authState;
         }
     }
 }
 
 const AuthProviderScreen = (props) => {
 
-    const [state, dispatch] = useReducer(reducer,
+    const [authState, dispatch] = useReducer(reducer,
         {
             password: '',
             confirmPassword: '',
@@ -38,7 +38,7 @@ const AuthProviderScreen = (props) => {
 
     const [loader, setLoader] = useState(false);
 
-    const { setAuthDetails } = useContext(AuthContext);
+    const { state, setAuthDetails } = useContext(AuthContext);
 
     const getParams = () => {
         return props.route.params;
@@ -48,15 +48,18 @@ const AuthProviderScreen = (props) => {
         setLoader(true);
         const emailREGEX = /^([A-Za-z0-9_\-\.])+\@([A-Za-z0-9_\-\.])+\.([A-Za-z]{2,4})$/;
         if (getParams().data.email.match(emailREGEX)) {
-            if (state.password == state.confirmPassword) {
+            if (authState.password == authState.confirmPassword) {
                 const dataToSend = {
                     userName: getParams().data.userName,
                     email: getParams().data.email,
-                    password: state.password,
+                    password: authState.password,
                     photoURL: getParams().data.photoURL
                 }
                 EmailPasswordAuthSignup(
-                    dataToSend,
+                    {
+                        ...dataToSend,
+                        FCMToken: state.fcmToken
+                    },
                     async (data) => {
                         setAuthDetails(dataToSend);
                         console.log('data for async storage', dataToSend);
@@ -88,7 +91,7 @@ const AuthProviderScreen = (props) => {
                 : null
             }
             <Input
-                value={state.password}
+                value={authState.password}
                 label={`Enter password for your ${getParams().from} account`}
                 onChangeTextCallback={
                     (newPassword) => {
@@ -98,7 +101,7 @@ const AuthProviderScreen = (props) => {
                 type='password'
             />
             <Input
-                value={state.confirmPassword}
+                value={authState.confirmPassword}
                 label='Confirm your password'
                 onChangeTextCallback={
                     (newConfirmPassword) => {
@@ -109,14 +112,14 @@ const AuthProviderScreen = (props) => {
                 type='password'
             />
             {
-                state.error ? <ErrorMsg
-                    text={state.error}
+                authState.error ? <ErrorMsg
+                    text={authState.error}
                     clearError={(string) => dispatch({ type: 'set_error', payload: string })} />
                     : <ErrorMsg />
             }
             <Button
                 label='Sign Up'
-                visible={state.password != ''}
+                visible={authState.password != ''}
                 onPressCallback={signupDetailsSetter}
                 loading={loader}
             />

@@ -10,10 +10,18 @@ import LoginScreen from './src/screens/LoginScreen';
 import HomeScreen from './src/screens/HomeScreen';
 import ChatsRoomScreen from './src/screens/ChatsRoomScreen';
 import ChatsScreen from './src/screens/ChatsScreen';
+import messaging from '@react-native-firebase/messaging';
 
 const Stack = createStackNavigator();
 
+messaging().setBackgroundMessageHandler(
+  async (message) => {
+    console.log('message', message);
+  }
+)
+
 const App = () => {
+
   return <NavigationContainer theme={DarkTheme}>
     <Stack.Navigator initialRouteName='Initial'>
       <Stack.Screen name='Initial' component={InitialScreen} options={{ headerShown: false }} />

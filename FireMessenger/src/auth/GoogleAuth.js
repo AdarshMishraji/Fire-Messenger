@@ -15,7 +15,6 @@ export default GoogleAuthSignup = async (setData, setError) => {
                 await fireMessengerAPI.post('/auth/signup/withGoogleJWT', { token: idToken })
                     .then(
                         (value) => {
-                            // console.log(value.data);
                             const data = jwt_decode(value.data.token);
                             console.log(data);
                             setData('Google', data);
@@ -23,8 +22,6 @@ export default GoogleAuthSignup = async (setData, setError) => {
                     )
                     .catch(
                         (err) => {
-                            // console.log(err);
-                            // dispatch({ type: 'set_error', payload: err.response.data.errMsg });
                             setError(err);
                         }
                     )
@@ -33,7 +30,6 @@ export default GoogleAuthSignup = async (setData, setError) => {
         .catch(
             (err) => {
                 console.log(err);
-                // dispatch({ type: 'set_error', payload: 'Unable to Signin from Google' });
                 setError(err);
             }
         )

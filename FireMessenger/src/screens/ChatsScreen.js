@@ -1,5 +1,5 @@
 import React, { useContext, useState, useEffect } from 'react';
-import { View, FlatList, Text, StyleSheet, TextInput, TouchableOpacity, BackHandler, Image, Modal, ScrollView } from 'react-native';
+import { AppState, View, FlatList, Text, StyleSheet, TextInput, TouchableOpacity, BackHandler, Image, Modal, ScrollView } from 'react-native';
 import Button from '../components/Button';
 import firestore from '@react-native-firebase/firestore';
 import { Context as AuthContext } from '../contexts/AuthContext';
@@ -63,29 +63,32 @@ const ChatsScreen = (props) => {
                                     }
                                 }
                             }
-                        )
-
+                    )
                 }
             )
     }
 
     useEffect(
         () => {
-            fetchData()
+            const onBackPress = () => {
+                if (selection) {
+                    setSelection(false);
+                }
+            }
+            const onAppStateChange = (state) => {
+                if (state != 'background' && state != 'inactive') {
+                    fetchData();
+                }
+            }
+            AppState.addEventListener('change', onAppStateChange)
+            BackHandler.addEventListener('hardwareBackPress', onBackPress)
             return () => {
-                BackHandler.removeEventListener('hardwareBackPress')
+                BackHandler.removeEventListener('hardwareBackPress', onBackPress);
+                AppState.removeEventListener('change', onAppStateChange);
             }
         }, []
     )
 
-    BackHandler.addEventListener('hardwareBackPress', () => {
-        if (selection) {
-            setSelection(false);
-        }
-        else {
-            setSelection(true);
-        }
-    })
 
     const onSend = async () => {
         const packet = {
@@ -154,7 +157,7 @@ const ChatsScreen = (props) => {
                 }
             }
         }
-        setMessages(resultantData);
+        // setMessages(resultantData);
         setItemToDelete([]);
     }
 
@@ -391,7 +394,6 @@ const ChatsScreen = (props) => {
                     <Text style={{ color: 'white' }}>Send</Text>
                 </TouchableOpacity>
             </View>
-            {/* <InputWidget /> */}
         </View >
     )
 }

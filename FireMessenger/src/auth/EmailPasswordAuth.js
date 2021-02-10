@@ -1,13 +1,14 @@
 import fireMessengerAPI from '../api/fire-messenger';
 import jwt_decode from 'jwt-decode';
 
-export const EmailPasswordAuthSignup = async ({ userName, email, password, photoURL }, setData, setError) => {
+export const EmailPasswordAuthSignup = async ({ userName, email, password, photoURL, FCMToken }, setData, setError) => {
     await fireMessengerAPI.post('/auth/signup/withEmailAndPassword',
         {
             userName: userName,
             email: email,
             password: password,
-            photoURL: photoURL ? photoURL : null
+            photoURL: photoURL ? photoURL : null,
+            FCMToken
         }
     ).then(
         (value) => {
@@ -24,11 +25,12 @@ export const EmailPasswordAuthSignup = async ({ userName, email, password, photo
         )
 }
 
-export const EmailPasswordAuthLogin = async ({ email, password }, setData, setError) => {
+export const EmailPasswordAuthLogin = async ({ email, password, FCMToken }, setData, setError) => {
     await fireMessengerAPI.post('/auth/login/withEmailAndPassword',
         {
             email,
-            password
+            password,
+            FCMToken
         }
     )
         .then(

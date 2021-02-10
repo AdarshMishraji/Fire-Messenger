@@ -1,18 +1,20 @@
 const router = require('express').Router();
-const firebase = require('firebase').default;
+// const firebase = require('firebase').default;
+const adminApp = require('../fireApp');
 
 router.post('/sendMessage',
     async (req, res) => {
         const { message, currentUserDetails, receiverDetails } = req.body;
         console.log(message, currentUserDetails, receiverDetails);
-        const currentTimeStamp = message.sendAt;
-        const senderRef = firebase.firestore()
+        const currentTime = message.sendAt;
+
+        const senderRef = adminApp.firestore()
             .collection('users')
             .doc(currentUserDetails.email)
             .collection('active_users')
             .doc(receiverDetails.email)
 
-        const receiverRef = firebase.firestore()
+        const receiverRef = adminApp.firestore()
             .collection('users')
             .doc(receiverDetails.email)
             .collection('active_users')
@@ -35,8 +37,9 @@ router.post('/sendMessage',
                         email: receiverDetails.email,
                         photoURL: receiverDetails.photoURL,
                         userName: receiverDetails.userName,
-                        recentTimeStamp: currentTimeStamp,
-                        recentMessage: message.message
+                        recentTimeStamp: currentTime,
+                        recentMessage: message.message,
+                        FCMToken: receiverDetails.FCMToken
                     }
                 )
             await receiverRef
@@ -45,10 +48,26 @@ router.post('/sendMessage',
                         email: currentUserDetails.email,
                         photoURL: currentUserDetails.photoURL,
                         userName: currentUserDetails.userName,
-                        recentTimeStamp: currentTimeStamp,
-                        recentMessage: message.message
+                        recentTimeStamp: currentTime,
+                        recentMessage: message.message,
+                        FCMToken: receiverDetails.FCMToken
                     }
                 )
+            await adminApp
+                .messaging()
+                .sendToDevice(receiverDetails.FCMToken,
+                    {
+                        notification: {
+                            title: `Message From: ${currentUserDetails.userName}`,
+                            body: `${message.message}`,
+                        },
+                    },
+                    {
+                        timeToLive: 86400,
+                        priority: 'high',
+                    }
+                );
+
             res.status(200).send({ msg: 'Message send successfully' });
         }
         catch (err) {

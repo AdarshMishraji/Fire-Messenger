@@ -22,7 +22,8 @@ router.post('/signout',
                                     .doc(element.data().email)
                                     .update(
                                         {
-                                            signedIn: false
+                                            signedIn: false,
+                                            FCMToken: null
                                         }
                                     )
                             }

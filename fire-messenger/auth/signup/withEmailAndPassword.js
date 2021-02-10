@@ -5,7 +5,7 @@ const adminApp = require('../../fireApp');
 
 router.post('/withEmailAndPassword',
     async (req, res) => {
-        const { userName, email, password, photoURL } = req.body;
+        const { userName, email, password, photoURL, FCMToken } = req.body;
 
         await adminApp.firestore()
             .collection('users')
@@ -35,6 +35,7 @@ router.post('/withEmailAndPassword',
                                                             email,
                                                             password: encrypted,
                                                             photoURL: photoURL ? photoURL : null,
+                                                            FCMToken,
                                                             signedIn: true
                                                         }
                                                     )

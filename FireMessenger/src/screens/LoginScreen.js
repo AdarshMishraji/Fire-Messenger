@@ -8,19 +8,19 @@ import ErrorMsg from '../components/ErrorMsg';
 import Input from '../components/Input';
 import { Context as AuthContext } from '../contexts/AuthContext';
 
-const reducer = (state, action) => {
+const reducer = (authState, action) => {
     switch (action.type) {
         case 'set_password': {
-            return { ...state, password: action.payload };
+            return { ...authState, password: action.payload };
         }
         case 'set_error': {
-            return { ...state, error: action.payload };
+            return { ...authState, error: action.payload };
         }
         case 'set_email': {
-            return { ...state, email: action.payload };
+            return { ...authState, email: action.payload };
         }
         default: {
-            return state;
+            return authState;
         }
     }
 }
@@ -31,8 +31,8 @@ const LoginScreen = (props) => {
         return props.route.params
     }
 
-    const { setAuthDetails } = useContext(AuthContext);
-    const [state, dispatch] = useReducer(
+    const { state, setAuthDetails } = useContext(AuthContext);
+    const [authState, dispatch] = useReducer(
         reducer,
         {
             email: getParams() ? getParams().email ? getParams().email : '' : '',
@@ -45,18 +45,19 @@ const LoginScreen = (props) => {
 
     const onLoginPress = () => {
         setLoader(true);
-        console.log(state.email, state.password);
+        console.log(authState.email, authState.password);
         EmailPasswordAuthLogin(
             {
-                email: state.email,
-                password: state.password
+                email: authState.email,
+                password: authState.password,
+                FCMToken: state.fcmToken
             },
             async (data) => {
                 const dataToSend = {
-                    email: state.email,
-                    password: state.password,
+                    email: authState.email,
+                    password: authState.password,
                     photoURL: data.photoURL,
-                    userName: data.userName
+                    userName: data.userName,
                 }
                 setAuthDetails(dataToSend);
                 await AsyncStorage.setItem('activeUser', JSON.stringify(dataToSend));
@@ -74,7 +75,7 @@ const LoginScreen = (props) => {
 
     return <View style={styles.rootStyle}>
         <Input
-            value={state.email}
+            value={authState.email}
             label='Enter your email address:'
             onChangeTextCallback={
                 (newEmail) => {
@@ -84,7 +85,7 @@ const LoginScreen = (props) => {
             }
         />
         <Input
-            value={state.password}
+            value={authState.password}
             label='Enter your password:'
             onChangeTextCallback={
                 (newPassword) => {
@@ -93,15 +94,15 @@ const LoginScreen = (props) => {
             }
             type='password'
         />
-        {state.error ? <ErrorMsg
-            text={state.error}
+        {authState.error ? <ErrorMsg
+            text={authState.error}
             clearError={(string) => dispatch({ type: 'set_error', payload: string })} />
             : <ErrorMsg />
         }
         <Button
             label='Login'
             onPressCallback={onLoginPress}
-            visible={state.email != '' && state.password != ''}
+            visible={authState.email != '' && authState.password != ''}
             loading={loader}
         />
         <AuthNavigationForNot

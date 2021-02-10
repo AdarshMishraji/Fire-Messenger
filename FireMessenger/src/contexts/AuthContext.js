@@ -27,6 +27,9 @@ const reducer = (state, action) => {
                 photoURL: action.payload.photoURL,
             }
         }
+        case 'set_FCM_token': {
+            return { ...state, fcmToken: action.payload };
+        }
         default: {
             console.warn('Default Case Reached, No Matching Action');
             return state;
@@ -77,6 +80,12 @@ const tryLocalAuthDetails = dispatch => {
     }
 }
 
+const setFCMToken = (dispatch) => {
+    return (fcm) => {
+        dispatch({ type: 'set_FCM_token', payload: fcm });
+    }
+}
+
 export const { Context, Provider } = createDataContext(
     reducer,
     {
@@ -85,12 +94,14 @@ export const { Context, Provider } = createDataContext(
         setPassword,
         setPhotoURL,
         tryLocalAuthDetails,
-        setAuthDetails
+        setAuthDetails,
+        setFCMToken
     },
     {
         userName: '',
         email: '',
         password: '',
         photoURL: '',
+        fcmToken: ''
     }
 )

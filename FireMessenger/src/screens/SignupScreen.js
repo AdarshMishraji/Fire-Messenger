@@ -12,36 +12,36 @@ import GoogleAuthSignup from '../auth/GoogleAuth';
 import { EmailPasswordAuthSignup } from '../auth/EmailPasswordAuth';
 import FacebookAuthSignup from '../auth/FacebookAuth';
 
-const reducer = (state, action) => {
+const reducer = (authState, action) => {
     switch (action.type) {
         case 'set_userName': {
-            return { ...state, userName: action.payload };
+            return { ...authState, userName: action.payload };
         }
         case 'set_email': {
-            return { ...state, email: action.payload };
+            return { ...authState, email: action.payload };
         }
         case 'set_password': {
-            return { ...state, password: action.payload };
+            return { ...authState, password: action.payload };
         }
         case 'set_confirmPassword': {
-            return { ...state, confirmPassword: action.payload };
+            return { ...authState, confirmPassword: action.payload };
         }
         case 'set_error': {
-            return { ...state, error: action.payload };
+            return { ...authState, error: action.payload };
         }
         case 'clear_all': {
             return {}
         }
         default: {
             console.log('default case reached');
-            return state;
+            return authState;
         }
     }
 }
 
 const SignupScreen = (props) => {
 
-    const [state, dispatch] = useReducer(reducer,
+    const [authState, dispatch] = useReducer(reducer,
         {
             userName: '',
             email: '',
@@ -54,7 +54,7 @@ const SignupScreen = (props) => {
     const [signupLoader, setSignupLoader] = useState(false);
     const [otherAuthLoader, setOtherAuthLoader] = useState(false);
 
-    const { setAuthDetails } = useContext(AuthContext);
+    const { state, setAuthDetails } = useContext(AuthContext);
 
     const signupDetailsSetter = {
         setData: (from, data) => {
@@ -66,7 +66,7 @@ const SignupScreen = (props) => {
                 if (err.response.status == 409) {
                     setOtherAuthLoader(false);
                     setSignupLoader(false);
-                    props.navigation.navigate('Login', { alreadySignedUp: true, email: err.response.data.email ? err.response.data.email : state.email });
+                    props.navigation.navigate('Login', { alreadySignedUp: true, email: err.response.data.email ? err.response.data.email : authState.email });
                 }
                 else if (err.response.status == 500) {
                     dispatch({ type: 'set_error', payload: err.response.data.errMsg });
@@ -90,10 +90,10 @@ const SignupScreen = (props) => {
         },
         setEmailPasswordData: async (data) => {
             const dataToSend = {
-                userName: state.userName,
-                email: state.email,
-                password: state.password,
-                photoURL: null
+                userName: authState.userName,
+                email: authState.email,
+                password: authState.password,
+                photoURL: null,
             }
             setAuthDetails(dataToSend);
             await AsyncStorage.setItem('activeUser', JSON.stringify(dataToSend));
@@ -121,13 +121,14 @@ const SignupScreen = (props) => {
     const onEmailPasswordSignupPress = () => {
         setSignupLoader(true);
         const emailREGEX = /^([A-Za-z0-9_\-\.])+\@([A-Za-z0-9_\-\.])+\.([A-Za-z]{2,4})$/;
-        if (state.email.match(emailREGEX)) {
-            if (state.password == state.confirmPassword) {
+        if (authState.email.match(emailREGEX)) {
+            if (authState.password == authState.confirmPassword) {
                 EmailPasswordAuthSignup(
                     {
-                        userName: state.userName,
-                        email: state.email,
-                        password: state.password,
+                        userName: authState.userName,
+                        email: authState.email,
+                        password: authState.password,
+                        FCMToken: state.fcmToken
                     },
                     signupDetailsSetter.setEmailPasswordData,
                     signupDetailsSetter.setError
@@ -148,7 +149,7 @@ const SignupScreen = (props) => {
         <ScrollView showsVerticalScrollIndicator={false}>
             <Input
                 label='Enter your name'
-                value={state.userName}
+                value={authState.userName}
                 onChangeTextCallback={
                     (newName) => {
                         dispatch({ type: 'set_userName', payload: newName });
@@ -157,7 +158,7 @@ const SignupScreen = (props) => {
             />
             <Input
                 label='Enter your email address'
-                value={state.email}
+                value={authState.email}
                 onChangeTextCallback={
                     (newEmail) => {
                         dispatch({ type: 'set_email', payload: newEmail });
@@ -166,7 +167,7 @@ const SignupScreen = (props) => {
             />
             <Input
                 label='Enter your password'
-                value={state.password}
+                value={authState.password}
                 onChangeTextCallback={
                     (newPassword) => {
                         dispatch({ type: 'set_password', payload: newPassword });
@@ -176,7 +177,7 @@ const SignupScreen = (props) => {
             />
             <Input
                 label='Confirm password'
-                value={state.confirmPassword}
+                value={authState.confirmPassword}
                 onChangeTextCallback={
                     (newConfirmPassword) => {
                         dispatch({ type: 'set_confirmPassword', payload: newConfirmPassword });
@@ -184,15 +185,15 @@ const SignupScreen = (props) => {
                 }
                 type='password'
             />
-            {state.error ? <ErrorMsg
-                text={state.error}
+            {authState.error ? <ErrorMsg
+                text={authState.error}
                 clearError={(string) => dispatch({ type: 'set_error', payload: string })} />
                 : <ErrorMsg />
             }
             <Button
                 label='Sign Up'
                 loading={signupLoader}
-                visible={state.userName != '' && state.email != '' && state.pasword != '' && state.confirmPassword != ''}
+                visible={authState.userName != '' && authState.email != '' && authState.pasword != '' && authState.confirmPassword != ''}
                 onPressCallback={onEmailPasswordSignupPress}
             />
             <GoogleSigninButton

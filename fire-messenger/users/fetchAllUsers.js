@@ -4,7 +4,6 @@ const firebase = require('firebase').default;
 router.post('/fetchAllUsers',
     async (req, res) => {
         const { currentUserEmail } = req.body;
-        console.log('currentUserEmail', currentUserEmail);
         await firebase.firestore()
             .collection('users')
             .get()

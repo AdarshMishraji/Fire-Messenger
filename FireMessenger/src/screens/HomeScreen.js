@@ -1,12 +1,38 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import React, { useContext, useState } from 'react';
-import { View, Text, StyleSheet, Image, TouchableOpacity, Modal } from 'react-native';
+import React, { useContext, useEffect, useState } from 'react';
+import { View, Text, StyleSheet, Image, TouchableOpacity, Modal, BackHandler, Alert } from 'react-native';
 import { Signout } from '../auth/Signout';
 import Button from '../components/Button';
 import ErrorMsg from '../components/ErrorMsg';
 import { Context as AuthContext } from '../contexts/AuthContext';
 
 const HomeScreen = (props) => {
+
+    useEffect(
+        () => {
+            const unsuscribe = props.navigation.addListener('focus', () => {
+                const onBackPress = () => {
+                    Alert.alert("Hold on!", "Are you sure you want to Exit?", [
+                        {
+                            text: "Cancel",
+                            onPress: () => null,
+                            style: "cancel"
+                        },
+                        { text: "YES", onPress: () => BackHandler.exitApp() }
+                    ]);
+                    return true;
+                };
+                BackHandler.addEventListener("hardwareBackPress", onBackPress);
+            })
+            return () => {
+                unsuscribe;
+                BackHandler.removeEventListener("hardwareBackPress");
+            }
+        }
+    )
+
+
+
     const [error, setError] = useState(null);
     const [loader, setLoader] = useState(false);
     const [showImage, setShowImage] = useState(false);
