@@ -1,70 +1,56 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import React, { useContext, useEffect, useState } from 'react';
-import { View, Text, StyleSheet, Image, TouchableOpacity, Modal, BackHandler, Alert } from 'react-native';
-import { Signout } from '../auth/Signout';
-import Button from '../components/Button';
-import ErrorMsg from '../components/ErrorMsg';
-import { Context as AuthContext } from '../contexts/AuthContext';
+/* eslint-disable react-native/no-inline-styles */
+/* eslint-disable prettier/prettier */
+// import AsyncStorage from '@react-native-async-storage/async-storage';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, Image, TouchableOpacity, Modal } from 'react-native';
+import { connect } from 'react-redux';
+// import { Signout } from '../auth/Signout';
+import { Button, ErrorMsg } from '../components';
+import {
+    onSignout,
+    actionCreator,
+} from '../actions';
+// import { Context as AuthContext } from '../contexts/AuthContext';
 
 const HomeScreen = (props) => {
 
-    useEffect(
-        () => {
-            const unsuscribe = props.navigation.addListener('focus', () => {
-                const onBackPress = () => {
-                    Alert.alert("Hold on!", "Are you sure you want to Exit?", [
-                        {
-                            text: "Cancel",
-                            onPress: () => null,
-                            style: "cancel"
-                        },
-                        { text: "YES", onPress: () => BackHandler.exitApp() }
-                    ]);
-                    return true;
-                };
-                BackHandler.addEventListener("hardwareBackPress", onBackPress);
-            })
-            return () => {
-                unsuscribe;
-                BackHandler.removeEventListener("hardwareBackPress");
-            }
-        }
-    )
-
-
-
-    const [error, setError] = useState(null);
-    const [loader, setLoader] = useState(false);
     const [showImage, setShowImage] = useState(false);
-    const { state } = useContext(AuthContext);
+    // const { state } = useContext(AuthContext);
 
-    const onSignoutPress = () => {
-        setLoader(true);
-        Signout(
-            state.email,
-            async (data) => {
-                console.log(data);
-                await AsyncStorage.removeItem('activeUser');
-                setLoader(false);
-                props.navigation.navigate('Signup');
-            },
-            (err) => {
-                console.log(err.response.status, err.response.data.errMsg);
-                setError(err.response.data.errMsg);
-            }
-        )
-    }
+    // const onSignoutPress = () => {
+    //     setLoader(true);
+    //     Signout(
+    //         state.email,
+    //         async (data) => {
+    //             console.log(data);
+    //             await AsyncStorage.removeItem('activeUser');
+    //             setLoader(false);
+    //             props.navigation.navigate('Signup');
+    //         },
+    //         (err) => {
+    //             // console.log(err.response.status, err.response.data.errMsg);
+    //             if (err.message) {
+    //                 setError(err.message);
+    //                 setLoader(false);
+    //             }
+    //             else if (err.response) {
+    //                 setError(err.response.data.errMsg);
+    //                 setLoader(false);
+    //             }
+    //         }
+    //     );
+    // };
 
     const ImageComponent = (style) => {
         return <Image
             style={{ ...style.style, backgroundColor: 'white' }}
-            source={state.photoURL ? { uri: state.photoURL } : require('../assets/userImage.png')}
-        />
-    }
+            source={props.photoURL ? { uri: props.photoURL } : require('../assets/userImage.png')}
+        />;
+    };
 
     return <View style={styles.rootStyle}>
         <Text>Home Screen</Text>
-        {error ? <ErrorMsg text={error} clearError={string => setError(string)} /> : <ErrorMsg />}
+        {props.error ? <ErrorMsg text={props.error} clearError={string => props.actionCreator('set_error', string)} /> : <ErrorMsg />}
         <Modal
             visible={showImage}
             transparent={true}
@@ -83,46 +69,59 @@ const HomeScreen = (props) => {
                     width: 200,
                     alignSelf: 'center',
                     borderRadius: 50,
-                    marginBottom: 20
+                    marginBottom: 20,
                 }}
-            // source={{ uri: state.photoURL }}
             />
-            <Text style={styles.userNameStyle}>{state.userName}</Text>
+            <Text style={styles.userNameStyle}>{props.userName}</Text>
         </TouchableOpacity>
         <Button
-            label='Chats'
+            label="Chats"
             visible={true}
             onPressCallback={() => props.navigation.navigate('ChatsRoom')}
         />
         <Button
-            label='Sign Out'
+            label="Sign Out"
             visible={true}
-            onPressCallback={onSignoutPress}
-            loading={loader}
+            onPressCallback={
+                () => {
+                    props.onSignout(props.email, () => props.navigation.navigate('Signup'));
+                }
+            }
+            loading={props.loader}
         />
-    </View>
-}
+    </View>;
+};
 
 const styles = StyleSheet.create(
     {
         rootStyle: {
             flex: 1,
-            padding: 20
+            padding: 20,
         },
         imageStyle: {
             height: 200,
             width: 200,
             alignSelf: 'center',
             borderRadius: 50,
-            marginBottom: 20
+            marginBottom: 20,
         },
         userNameStyle: {
             color: 'white',
             fontSize: 30,
             alignSelf: 'center',
-            fontWeight: 'bold'
-        }
+            fontWeight: 'bold',
+        },
     }
-)
+);
 
-export default HomeScreen;
+const mapStateToProps = (state) => {
+    return {
+        email: state.auth.user.email,
+        userName: state.auth.user.userName,
+        loader: state.auth.loader,
+        photoURL: state.auth.user.photoURL,
+        error: state.auth.error,
+    };
+};
+
+export default connect(mapStateToProps, { actionCreator, onSignout })(HomeScreen);

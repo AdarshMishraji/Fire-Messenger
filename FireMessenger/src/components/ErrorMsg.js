@@ -45,4 +45,5 @@ const styles = StyleSheet.create(
     }
 )
 
-export default ErrorMsg;
+// export default ErrorMsg;
+export { ErrorMsg };

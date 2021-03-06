@@ -1,127 +1,104 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import React, { useContext, useReducer, useState } from 'react';
+/* eslint-disable prettier/prettier */
+import React, { useEffect } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { EmailPasswordAuthLogin } from '../auth/EmailPasswordAuth';
-import AuthNavigationForNot from '../components/AuthNavigationForNot';
-import Button from '../components/Button';
-import ErrorMsg from '../components/ErrorMsg';
-import Input from '../components/Input';
-import { Context as AuthContext } from '../contexts/AuthContext';
-
-const reducer = (authState, action) => {
-    switch (action.type) {
-        case 'set_password': {
-            return { ...authState, password: action.payload };
-        }
-        case 'set_error': {
-            return { ...authState, error: action.payload };
-        }
-        case 'set_email': {
-            return { ...authState, email: action.payload };
-        }
-        default: {
-            return authState;
-        }
-    }
-}
+import { connect } from 'react-redux';
+import {
+    Button,
+    ErrorMsg,
+    Input,
+    AuthNavigationForNot,
+} from '../components';
+import {
+    onLogin,
+    actionCreator,
+} from '../actions/';
 
 const LoginScreen = (props) => {
 
-    const getParams = () => {
-        return props.route.params
-    }
-
-    const { state, setAuthDetails } = useContext(AuthContext);
-    const [authState, dispatch] = useReducer(
-        reducer,
-        {
-            email: getParams() ? getParams().email ? getParams().email : '' : '',
-            password: '',
-            error: ''
-        }
-    )
-
-    const [loader, setLoader] = useState(false);
-
-    const onLoginPress = () => {
-        setLoader(true);
-        console.log(authState.email, authState.password);
-        EmailPasswordAuthLogin(
-            {
-                email: authState.email,
-                password: authState.password,
-                FCMToken: state.fcmToken
-            },
-            async (data) => {
-                const dataToSend = {
-                    email: authState.email,
-                    password: authState.password,
-                    photoURL: data.photoURL,
-                    userName: data.userName,
-                }
-                setAuthDetails(dataToSend);
-                await AsyncStorage.setItem('activeUser', JSON.stringify(dataToSend));
-                setLoader(false);
-                props.navigation.navigate('Home');
-            },
-            (err) => {
-                console.log('error', err, err.response.data);
-                setLoader(false);
-                dispatch({ type: 'set_error', payload: err.response.data.errMsg });
+    useEffect(
+        () => {
+            if (props.route.params) {
+                props.actionCreator('clear');
+                props.actionCreator('set_email', props.route.params.email);
             }
-        );
-    }
-
+            else {
+                props.actionCreator('clear');
+            }
+            // eslint-disable-next-line react-hooks/exhaustive-deps
+        }, []
+    );
 
     return <View style={styles.rootStyle}>
         <Input
-            value={authState.email}
-            label='Enter your email address:'
+            value={props.email}
+            label="Enter your email address:"
             onChangeTextCallback={
                 (newEmail) => {
                     // setEmail(newEmail);
-                    dispatch({ type: 'set_email', payload: newEmail });
+                    // dispatch({ type: 'set_email', payload: newEmail });
+                    props.actionCreator('set_email', newEmail);
                 }
             }
         />
         <Input
-            value={authState.password}
-            label='Enter your password:'
+            value={props.password}
+            label="Enter your password:"
             onChangeTextCallback={
                 (newPassword) => {
-                    dispatch({ type: 'set_password', payload: newPassword });
+                    // dispatch({ type: 'set_password', payload: newPassword });
+                    props.actionCreator('set_password', newPassword);
                 }
             }
-            type='password'
+            type="password"
         />
-        {authState.error ? <ErrorMsg
-            text={authState.error}
-            clearError={(string) => dispatch({ type: 'set_error', payload: string })} />
+        {props.error ? <ErrorMsg
+            text={props.error}
+            clearError={(string) => props.actionCreator('set_error', string)} />
             : <ErrorMsg />
         }
         <Button
-            label='Login'
-            onPressCallback={onLoginPress}
-            visible={authState.email != '' && authState.password != ''}
-            loading={loader}
+            label="Login"
+            visible={props.email !== '' && props.password !== ''}
+            loading={props.loader}
+            onPressCallback={
+                () => {
+                    props.onLogin({
+                        email: props.email,
+                        password: props.password,
+                        fcmToken: props.fcmToken,
+                        onSuccess: () => {
+                            props.navigation.navigate('Main');
+                        },
+                    });
+                }
+            }
         />
         <AuthNavigationForNot
-            type='login'
+            type="Login"
             navigation={() => props.navigation.navigate('Signup')}
         />
-    </View>
-}
+    </View>;
+};
 
 const styles = StyleSheet.create(
     {
         rootStyle: {
             flex: 1,
-            padding: 20
-        }
+            padding: 20,
+        },
     }
-)
+);
 
-export default LoginScreen;
+const mapStateToProps = (state) => {
+    return {
+        email: state.auth.email,
+        password: state.auth.password,
+        fcmToken: state.auth.user.fcmToken,
+        loader: state.auth.loader
+    };
+};
+
+export default connect(mapStateToProps, { actionCreator, onLogin })(LoginScreen);
 
 
 //blind alley in DFS: not getting a node, but just going on for searching.

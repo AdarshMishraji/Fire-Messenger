@@ -1,7 +1,8 @@
+/* eslint-disable prettier/prettier */
 import axios from 'axios';
 
 export default axios.create(
     {
-        baseURL: 'http://2399e13e8545.ngrok.io'
+        baseURL: 'http://22fa7b139638.ngrok.io',
     }
 )

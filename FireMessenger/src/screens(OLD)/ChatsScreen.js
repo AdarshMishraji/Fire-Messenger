@@ -1,4 +1,3 @@
-/* eslint-disable prettier/prettier */
 import React, { useContext, useState, useEffect } from 'react';
 import { AppState, View, FlatList, Text, StyleSheet, TextInput, TouchableOpacity, BackHandler, Image, Modal, ScrollView } from 'react-native';
 import { Button } from '../components';

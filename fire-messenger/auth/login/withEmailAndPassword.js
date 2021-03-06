@@ -4,6 +4,7 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 
 router.post('/withEmailAndPassword', async (req, res) => {
+    console.log('withEmailAndPassword Login', req.body);
     const { email, password, FCMToken } = req.body;
 
     await adminApp.firestore()

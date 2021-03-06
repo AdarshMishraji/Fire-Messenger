@@ -18,6 +18,7 @@ router.post('/withGoogleJWT',
                             email,
                             photoURL: picture
                         }
+                        console.log('withGoogle', data);
                         res.status(200).send({ token: jwt.sign(data, 'NuRsInHa') });
                     }
                     else {

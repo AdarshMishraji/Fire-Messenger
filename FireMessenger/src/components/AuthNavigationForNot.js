@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 
 const AuthNavigationForNot = ({ type, navigation }) => {
+    console.log(type);
     return <View style={{ flex: 1 }}>
         <View style={styles.containerStyle}>
             <TouchableOpacity
@@ -33,4 +34,5 @@ const styles = StyleSheet.create(
         }
     }
 )
-export default AuthNavigationForNot;
+// export default AuthNavigationForNot;
+export { AuthNavigationForNot };

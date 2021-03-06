@@ -4,6 +4,7 @@ const usersRoutes = require('./routes/usersRoutes');
 const messageRoutes = require('./routes/messageRoutes');
 const express = require('express');
 const cors = require('cors');
+// const functions = require('firebase-functions');
 
 const app = express();
 
@@ -14,9 +15,8 @@ app.use('/auth', authRoutes);
 app.use('/users', usersRoutes);
 app.use('/messages', messageRoutes);
 
-app.get('/', (req, res) => {
-    console.log(req.body);
-    res.send(req.body);
+app.get('/hello', (req, res) => {
+    res.send('Hello World');
 })
 
 app.listen(5000,
@@ -24,3 +24,5 @@ app.listen(5000,
         console.log('Running fire-messenger server at port: ' + 5000);
     }
 )
+
+// exports.App = functions.https.onRequest(app);

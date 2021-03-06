@@ -9,7 +9,7 @@ const Spinner = ({ isVisible }) => {
     >
         <View style={styles.rootStyle}>
             <View style={styles.modalStyle}>
-                <ActivityIndicator size='large' color='blue' style={{ height: 100, width: 100 }} />
+                    <ActivityIndicator size='large' color='blue' style={{ height: 100, width: 100 }} />
             </View>
         </View>
     </Modal>
@@ -26,13 +26,15 @@ const styles = StyleSheet.create(
             borderWidth: 1,
             borderRadius: 20,
             height: 100,
-            marginVertical: 300
         },
         rootStyle: {
             flex: 1,
-            backgroundColor: 'rgba(0,0,0,0.7)'
+            backgroundColor: 'rgba(0,0,0,0.7)',
+            alignItems: 'center',
+            justifyContent: 'center'
         }
     }
 )
 
-export default Spinner;
+// export default Spinner;
+export { Spinner };

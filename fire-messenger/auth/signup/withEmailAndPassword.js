@@ -5,6 +5,7 @@ const adminApp = require('../../fireApp');
 
 router.post('/withEmailAndPassword',
     async (req, res) => {
+        console.log('withEmailAndPassword', req.body);
         const { userName, email, password, photoURL, FCMToken } = req.body;
 
         await adminApp.firestore()
@@ -14,7 +15,7 @@ router.post('/withEmailAndPassword',
             .then(
                 (value) => {
                     if (value.size != 0) {
-                        console.log(value.size);
+                        console.log('value.size', value.size);
                         res.status(409).send({ errMsg: 'Email already exists.' })
                     }
                     else {
@@ -44,7 +45,7 @@ router.post('/withEmailAndPassword',
                                         )
                                         .catch(
                                             (err) => {
-                                                console.log(err);
+                                                console.log('withEmailAndPassword error', err);
                                                 res.status(500).send({ errMsg: 'Internal Error' });
                                             }
                                         )
@@ -52,7 +53,7 @@ router.post('/withEmailAndPassword',
                             )
                             .catch(
                                 (err) => {
-                                    console.log(err);
+                                    console.log('withEmailAndPassword error', err);
                                     res.status(500).send({ errMsg: 'Internal Error' });
                                 }
                             )

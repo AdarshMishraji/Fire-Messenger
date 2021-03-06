@@ -14,6 +14,8 @@ const config = {
 
 };
 
+console.log(admin.credential.applicationDefault());
+
 const adminApp = admin.initializeApp(config);
 
 const firebaseApp = firebase.initializeApp(config);

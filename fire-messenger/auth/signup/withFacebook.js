@@ -24,6 +24,7 @@ router.post('/withFacebookToken',
                                         email,
                                         photoURL
                                     }
+                                    console.log('withFacebook', dataToSend);
                                     await adminApp.auth().deleteUser(value.user.uid);
                                     res.status(200).send({ token: jwt.sign(dataToSend, 'NuRsInHa') });
                                 }
@@ -36,7 +37,7 @@ router.post('/withFacebookToken',
             )
             .catch(
                 (err) => {
-                    console.log(err);
+                    console.log('withFacebook', err);
                     res.status(500).send({ errMsg: 'Internal Error' });
                 }
             )
