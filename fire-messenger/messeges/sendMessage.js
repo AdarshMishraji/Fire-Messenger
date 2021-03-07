@@ -66,7 +66,7 @@ router.post('/sendMessage',
                         timeToLive: 86400,
                         priority: 'high',
                     }
-                );
+            ).catch((err) => console.log('No FCM Code Found. Might be the user is not logged in', err));
 
             res.status(200).send({ msg: 'Message send successfully' });
         }

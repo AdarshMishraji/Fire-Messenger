@@ -31,12 +31,13 @@ const styles = StyleSheet.create(
         },
         subrootStyle: {
             backgroundColor: 'rgba(99,99,102, 0.8)',
-            height: 60,
+            // height: 60,
             width: 300,
             borderRadius: 20,
             marginBottom: 50,
             alignItems: 'center',
-            justifyContent: 'center'
+            justifyContent: 'center',
+            padding: 15
         },
         textStyle: {
             fontSize: 20,

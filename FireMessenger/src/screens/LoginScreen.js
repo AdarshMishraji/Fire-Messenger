@@ -1,4 +1,3 @@
-/* eslint-disable prettier/prettier */
 import React, { useEffect } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { connect } from 'react-redux';
@@ -24,7 +23,6 @@ const LoginScreen = (props) => {
             else {
                 props.actionCreator('clear');
             }
-            // eslint-disable-next-line react-hooks/exhaustive-deps
         }, []
     );
 
@@ -34,8 +32,6 @@ const LoginScreen = (props) => {
             label="Enter your email address:"
             onChangeTextCallback={
                 (newEmail) => {
-                    // setEmail(newEmail);
-                    // dispatch({ type: 'set_email', payload: newEmail });
                     props.actionCreator('set_email', newEmail);
                 }
             }
@@ -45,7 +41,6 @@ const LoginScreen = (props) => {
             label="Enter your password:"
             onChangeTextCallback={
                 (newPassword) => {
-                    // dispatch({ type: 'set_password', payload: newPassword });
                     props.actionCreator('set_password', newPassword);
                 }
             }

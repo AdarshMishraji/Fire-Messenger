@@ -1,4 +1,3 @@
-/* eslint-disable prettier/prettier */
 import fireMessengerAPI from '../api/fire-messenger';
 import jwt_decode from 'jwt-decode';
 

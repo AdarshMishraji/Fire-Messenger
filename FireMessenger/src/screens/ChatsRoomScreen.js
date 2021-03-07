@@ -1,92 +1,28 @@
-import React, { useEffect, useReducer, useContext, useLayoutEffect, useState } from 'react';
-import { View, FlatList, Modal, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
-import { Context as AuthContext } from '../contexts/AuthContext';
-import fireMessengerAPI from '../api/fire-messenger';
+import React, { useEffect } from 'react';
+import { View, FlatList, Modal, Text, TouchableOpacity, Image, UIManager, LayoutAnimation } from 'react-native';
 import {
     Button,
     Spinner,
-    ErrorMsg
-} from '../components'
+} from '../components';
+import { chatsRoomScreenStyles as styles } from '../styles';
+import {
+    getActiveUsers,
+    getAllUsers,
+    actionCreator
+} from '../actions'
+import { connect } from 'react-redux';
 
-const reducer = (state, action) => {
-    switch (action.type) {
-        case 'set_users': {
-            return { ...state, users: action.payload };
-        }
-        case 'set_active_users': {
-            return { ...state, activeUsers: action.payload };
-        }
-        case 'set_show_users': {
-            return { ...state, showUsers: action.payload };
-        }
-        case 'error': {
-            return { ...state, error: action.payload };
-        }
-        default: {
-            return state;
-        }
-    }
-}
+UIManager.setLayoutAnimationEnabledExperimental ? UIManager.setLayoutAnimationEnabledExperimental(true) : null;
 
 const ChatsRoomScreen = (props) => {
-
-    const [usersContainer, dispatch] = useReducer(reducer,
-        {
-            users: [],
-            activeUsers: [],
-            showUsers: false,
-            error: ''
-        }
-    )
-
-    const { state } = useContext(AuthContext);
-    const [spinner, setSpinner] = useState(true);
-
-    const getActiveUsers = async () => {
-        await fireMessengerAPI.post('/users/fetchActiveUsers',
-            {
-                currentUserEmail: state.email
-            }
-        )
-            .then(
-                (value) => {
-                    dispatch({ type: 'set_active_users', payload: value.data.users });
-                }
-            )
-            .catch(
-                (err) => {
-                    console.log(err.response.data);
-                    dispatch({ type: 'set_error', payload: err.response.data });
-                }
-            )
-    }
-
-
-    const getAllUsers = async () => {
-        await fireMessengerAPI.post('/users/fetchAllUsers',
-            {
-                currentUserEmail: state.email
-            }
-        )
-            .then(
-                (value) => {
-                    dispatch({ type: 'set_users', payload: value.data.users });
-                }
-            )
-            .catch(
-                (err) => {
-                    console.log(err.response.data);
-                    dispatch({ type: 'set_error', payload: err.response.data });
-                }
-            )
-    }
 
     useEffect(
         () => {
             const unsuscribe = props.navigation.addListener('focus', () => {
-                getAllUsers();
-                getActiveUsers();
-                setTimeout(() => setSpinner(false), 5000)
+                props.actionCreator('set_spinner', true);
+                props.getAllUsers(props.email);
+                props.getActiveUsers(props.email);
+                setTimeout(() => props.actionCreator('set_spinner', false), 5000);
             })
             return () => {
                 unsuscribe;
@@ -94,52 +30,33 @@ const ChatsRoomScreen = (props) => {
         }, []
     )
 
+    console.log('chatsRoomScreen', props.spinner, props.activeUsers, props.allUsers);
+
 
     return <View style={{ flex: 1 }}>
         <Spinner
-            isVisible={!spinner || usersContainer.activeUsers.length != 0 || usersContainer.users.length != 0 ? false : true}
+            isVisible={!props.spinner || props.activeUsers.length != 0 || props.allUsers.length != 0 ? false : true}
         />
         <Modal
-            visible={usersContainer.showUsers}
+            visible={props.showUsers}
             transparent={true}
         >
             <View
-                style={{
-                    flex: 1,
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    backgroundColor: 'rgba(0,0,0,0.3)'
-                }}
+                style={styles.modalRootStyle}
             >
                 <View
-                    style={{
-                        padding: 10,
-                        borderWidth: 1,
-                        width: 300,
-                        backgroundColor: 'white',
-                        borderRadius: 20,
-                        height: 500
-                    }}
+                    style={styles.modalViewStyle}
                     >
                     {
-                        usersContainer.users.length == 0
-                            ? <Text style={{ fontSize: 30, fontWeight: 'bold', alignSelf: 'center', color: 'black' }}>No Users</Text>
+                        props.allUsers.length == 0
+                            ? <Text style={styles.modalNoUserStyle}>No Users</Text>
                             :
-                            <View
-                                style={{
-                                    flex: 1,
-                                }}
-                            >
+                            <View style={{ flex: 1 }}>
                                 <Text
-                                    style={{
-                                        fontWeight: 'bold',
-                                        fontSize: 20,
-                                        alignSelf: 'center',
-                                        marginBottom: 10
-                                    }}
+                                    style={styles.modalHeaderStyle}
                                 > Select the Reciever </Text>
                                 <FlatList
-                                    data={usersContainer.users}
+                                    data={props.allUsers}
                                     keyExtractor={
                                         (item) => {
                                             return item.data.email
@@ -147,32 +64,25 @@ const ChatsRoomScreen = (props) => {
                                     }
                                     renderItem={
                                         ({ item }) => {
-                                            if (item.data.email != state.email) {
+                                            if (item.data.email != props.email) {
                                                 return (
                                                     <View style={styles.userChatContainer}>
                                                         <TouchableOpacity
                                                             style={styles.userChatButton}
                                                             onPress={
                                                                 () => {
-                                                                    dispatch({ type: 'set_show_users', payload: false });
+                                                                    // dispatch({ type: 'set_show_users', payload: false });
+                                                                    props.actionCreator('set_show_users', false);
                                                                     props.navigation.navigate('Chat', { item });
                                                                 }
                                                             }
                                                         >
-                                                            <View style={{
-                                                                flexDirection: 'row',
-                                                                alignItems: 'center'
-                                                            }}>
+                                                            <View style={styles.modalUsersContainer}>
                                                                 <Image
-                                                                    source={require('../assets/userImage.png')}
-                                                                    style={{
-                                                                        height: 50,
-                                                                        width: 50,
-                                                                        borderRadius: 30,
-                                                                        margin: 10
-                                                                    }}
+                                                                    source={item.data.photoURL ? { uri: item.data.photoURL } : require('../assets/userImage.png')}
+                                                                    style={styles.modalUserImageStyle}
                                                                 />
-                                                                <Text style={{ fontSize: 20, color: 'black' }}>{item.data.userName}</Text>
+                                                                <Text style={styles.modalUsername}>{item.data.userName}</Text>
                                                             </View>
                                                         </TouchableOpacity>
                                                     </View>
@@ -190,7 +100,8 @@ const ChatsRoomScreen = (props) => {
                         label='Close'
                             onPressCallback={
                                 () => {
-                                    dispatch({ type: 'set_show_users', payload: false });
+                                    // dispatch({ type: 'set_show_users', payload: false });
+                                    props.actionCreator('set_show_users', false);
                                 }
                             }
                             visible={true}
@@ -198,18 +109,11 @@ const ChatsRoomScreen = (props) => {
                 </View>
             </View>
         </Modal>
-        {usersContainer.activeUsers.length == 0 ? <Text style={{ fontSize: 30, fontWeight: 'bold', alignSelf: 'center', marginVertical: 300, color: 'white' }}>No Active Users</Text> : null}
-        {usersContainer.error
-            ? <ErrorMsg
-                text={usersContainer.error}
-                clearError={(string) => {
-                    dispatch({ type: 'set_error', payload: string });
-                }}
-            />
-            : <ErrorMsg />}
-        <View style={{ padding: 20, flex: 1, justifyContent: 'space-between' }}>
+        {props.activeUsers.length == 0 ? <Text style={styles.noUserStyle}>No Active Users</Text> : null}
+
+        <View style={styles.mainRootStyle}>
         <FlatList
-                data={usersContainer.activeUsers}
+                data={props.activeUsers}
             keyExtractor={
                 (item) => {
                     return item.data.email
@@ -217,7 +121,7 @@ const ChatsRoomScreen = (props) => {
             }
             renderItem={
                 ({ item }) => {
-                    if (item.email != state.email) {
+                    if (item.email != props.email) {
                         return (
                             <View style={styles.userChatContainer}>
                                 <TouchableOpacity
@@ -228,24 +132,14 @@ const ChatsRoomScreen = (props) => {
                                         }
                                     }
                                 >
-                                    <View style={{
-                                        flexDirection: 'row',
-                                        alignItems: 'center'
-                                    }}>
+                                    <View style={styles.usersContainer}>
                                         <Image
                                             source={item.data.photoURL ? { uri: item.data.photoURL } : require('../assets/userImage.png')}
-                                            style={{
-                                                height: 50,
-                                                width: 50,
-                                                borderRadius: 20,
-                                                marginVertical: 10,
-                                                marginRight: 10,
-                                                backgroundColor: 'white'
-                                            }}
+                                            style={styles.userImageStyle}
                                         />
                                         <View>
-                                            <Text style={{ fontSize: 20, color: 'white' }}>{item.data.userName}</Text>
-                                            <Text style={{ fontSize: 15, color: 'white' }}>{item.data.recentMessage}</Text>
+                                            <Text style={styles.userNameStyle}>{item.data.userName}</Text>
+                                            <Text style={styles.recentMessageStyle}>{item.data.recentMessage}</Text>
                                         </View>
                                     </View>
                                 </TouchableOpacity>
@@ -263,7 +157,9 @@ const ChatsRoomScreen = (props) => {
                 visible={true}
                 onPressCallback={
                     () => {
-                        dispatch({ type: 'set_show_users', payload: true });
+                        // dispatch({ type: 'set_show_users', payload: true });
+                        LayoutAnimation.configureNext(LayoutAnimation.create(250, LayoutAnimation.Types.easeOut, LayoutAnimation.Properties.scaleXY));
+                        props.actionCreator('set_show_users', true);
                     }
                 }
             />
@@ -271,26 +167,17 @@ const ChatsRoomScreen = (props) => {
     </View>
 }
 
-const styles = StyleSheet.create(
-    {
-        userChatContainer: {
-            margin: 5,
-            borderRadius: 10,
-            borderColor: 'blue',
-            borderWidth: 1,
-            paddingHorizontal: 10,
-            justifyContent: 'center',
-            alignItems: 'flex-start',
-        },
-        userChatButton: {
-            width: '100%',
-            justifyContent: 'center'
-        },
-        userChatName: {
-            fontSize: 20,
-            color: 'white'
-        }
-    }
-)
 
-export default ChatsRoomScreen;
+const mapStateToProps = (state) => {
+    return {
+        userDetails: state.auth.user,
+        allUsers: state.chatsRoom.allUsers,
+        activeUsers: state.chatsRoom.activeUsers,
+        showUsers: state.chatsRoom.showUsers,
+        error: state.chatsRoom.error,
+        spinner: state.chatsRoom.spinner,
+        email: state.auth.user.email
+    }
+}
+
+export default connect(mapStateToProps, { actionCreator, getActiveUsers, getAllUsers })(ChatsRoomScreen);

@@ -14,8 +14,9 @@ import ChatsRoomScreen from './src/screens/ChatsRoomScreen';
 import ChatsScreen from './src/screens/ChatsScreen';
 import messaging from '@react-native-firebase/messaging';
 import { applyMiddleware, createStore } from 'redux';
-import ReduxStore from './src/reducers';
-import ReduxThunk from 'redux-thunk';
+// import ReduxStore from './src/reducers';
+// import ReduxThunk from 'redux-thunk';
+import store from './ReduxStore';
 
 const Stack = createStackNavigator();
 const AuthStack = createStackNavigator();
@@ -85,9 +86,10 @@ const MainApp = () => {
   </NavigationContainer>
 }
 
+
 export default () => {
   return <AuthProvider>
-    <ReduxProvider store={createStore(ReduxStore, {}, applyMiddleware(ReduxThunk))}  >
+    <ReduxProvider store={store}  >
       <ThemeProvider>
         <MainApp />
       </ThemeProvider>

@@ -1,4 +1,3 @@
-/* eslint-disable prettier/prettier */
 import React from 'react';
 import { View, ScrollView, StyleSheet, Image } from 'react-native';
 import { connect } from 'react-redux';
@@ -22,7 +21,6 @@ const AuthProviderScreen = (props) => {
         <ScrollView>
             {getParams().from ?
                 <Image
-                    // eslint-disable-next-line react-native/no-inline-styles
                     style={{
                         height: 200,
                         width: 200,
@@ -40,7 +38,6 @@ const AuthProviderScreen = (props) => {
                 label={`Enter password for your ${getParams().from === 'email' ? 'email address' : `${getParams().from} account`}`}
                 onChangeTextCallback={
                     (newPassword) => {
-                        // dispatch({ type: 'set_password', payload: newPassword });
                         props.actionCreator('set_password', newPassword);
                     }
                 }
@@ -51,7 +48,6 @@ const AuthProviderScreen = (props) => {
                 label="Confirm your password"
                 onChangeTextCallback={
                     (newConfirmPassword) => {
-                        // dispatch({ type: 'set_confirm_password', payload: newConfirmPassword });
                         props.actionCreator('set_confirm_password', newConfirmPassword);
                     }
                 }
@@ -73,7 +69,7 @@ const AuthProviderScreen = (props) => {
                             password: props.password,
                             confirmPassword: props.confirmPassword,
                             userName: getParams().data.userName,
-                            photoURL: getParams().photoURL,
+                            photoURL: getParams().data.photoURL,
                             fcmToken: props.fcmToken,
                             onSuccess: () => props.navigation.navigate('Main'),
                         });
@@ -100,6 +96,7 @@ const mapStateToProps = (state) => {
         confirmPassword: state.auth.confirmPassword,
         fcmToken: state.auth.user.fcmToken,
         error: state.auth.error,
+        loader: state.auth.loader
     };
 };
 

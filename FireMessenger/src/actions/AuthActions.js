@@ -1,4 +1,3 @@
-/* eslint-disable prettier/prettier */
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
     EmailPasswordAuthSignup,
@@ -135,7 +134,7 @@ export const onLogin = ({ email, password, fcmToken, onSuccess }) => {
             },
             async (data) => {
                 dispatch({ type: 'set_auth_details', payload: { ...dataToSend, photoURL: data.photoURL, userName: data.userName } });
-                await AsyncStorage.setItem('activeUser', JSON.stringify(dataToSend));
+                await AsyncStorage.setItem('activeUser', JSON.stringify({ ...dataToSend, photoURL: data.photoURL, userName: data.userName }));
                 dispatch({ type: 'set_loader', payload: { value: false } });
                 onSuccess();
             },
@@ -148,6 +147,7 @@ export const onLogin = ({ email, password, fcmToken, onSuccess }) => {
 };
 
 export const otherAuthDetailsSetter = ({ email, password, confirmPassword, userName, photoURL, fcmToken, onSuccess }) => {
+    console.log('otherAuthDetailsSetter', email, password, confirmPassword, userName, photoURL, fcmToken, onSuccess);
     return (dispatch) => {
         dispatch({ type: 'set_loader', payload: { value: true } });
         const emailREGEX = /^([A-Za-z0-9_\-\.])+\@([A-Za-z0-9_\-\.])+\.([A-Za-z]{2,4})$/;

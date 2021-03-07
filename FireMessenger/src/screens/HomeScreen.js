@@ -1,45 +1,16 @@
-/* eslint-disable react-native/no-inline-styles */
-/* eslint-disable prettier/prettier */
-// import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, Image, TouchableOpacity, Modal } from 'react-native';
 import { connect } from 'react-redux';
-// import { Signout } from '../auth/Signout';
 import { Button, ErrorMsg } from '../components';
 import {
     onSignout,
     actionCreator,
 } from '../actions';
-// import { Context as AuthContext } from '../contexts/AuthContext';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const HomeScreen = (props) => {
 
     const [showImage, setShowImage] = useState(false);
-    // const { state } = useContext(AuthContext);
-
-    // const onSignoutPress = () => {
-    //     setLoader(true);
-    //     Signout(
-    //         state.email,
-    //         async (data) => {
-    //             console.log(data);
-    //             await AsyncStorage.removeItem('activeUser');
-    //             setLoader(false);
-    //             props.navigation.navigate('Signup');
-    //         },
-    //         (err) => {
-    //             // console.log(err.response.status, err.response.data.errMsg);
-    //             if (err.message) {
-    //                 setError(err.message);
-    //                 setLoader(false);
-    //             }
-    //             else if (err.response) {
-    //                 setError(err.response.data.errMsg);
-    //                 setLoader(false);
-    //             }
-    //         }
-    //     );
-    // };
 
     const ImageComponent = (style) => {
         return <Image
@@ -84,7 +55,7 @@ const HomeScreen = (props) => {
             visible={true}
             onPressCallback={
                 () => {
-                    props.onSignout(props.email, () => props.navigation.navigate('Signup'));
+                    props.onSignout(props.email, () => props.navigation.navigate('Initial'));
                 }
             }
             loading={props.loader}

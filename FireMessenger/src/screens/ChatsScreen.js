@@ -1,19 +1,18 @@
-/* eslint-disable prettier/prettier */
-import React, { useContext, useState, useEffect } from 'react';
-import { AppState, View, FlatList, Text, StyleSheet, TextInput, TouchableOpacity, BackHandler, Image, Modal, ScrollView } from 'react-native';
-import { Button } from '../components';
-import firestore from '@react-native-firebase/firestore';
-import { Context as AuthContext } from '../contexts/AuthContext';
-import fireMessengerAPI from '../api/fire-messenger';
+import React, { useEffect } from 'react';
+import { AppState, View, FlatList, Text, TextInput, TouchableOpacity, BackHandler, Image, Modal, ScrollView, ActivityIndicator } from 'react-native';
+import { Button, Spinner } from '../components';
+import { connect } from 'react-redux';
+import {
+    actionCreator,
+    fetchData,
+    onSend,
+    appendChatsIndex,
+    deleteChatsIndex,
+    deleteChats
+} from '../actions'
+import { chatsScreenStyle as styles } from '../styles';
 
 const ChatsScreen = (props) => {
-    const { state } = useContext(AuthContext);
-    const [messages, setMessages] = useState([]);
-    const [newMessage, setNewMessage] = useState('');
-    const [itemToDelete, setItemToDelete] = useState([]);
-    const [selection, setSelection] = useState(false);
-    const [showDetails, setShowDetails] = useState(null);
-
     React.useLayoutEffect(
         () => {
             props.navigation.setOptions(
@@ -24,148 +23,58 @@ const ChatsScreen = (props) => {
         }, []
     )
 
-    const fetchData = async () => {
-        await firestore()
-            .collection('users')
-            .doc(state.email) //  current user's email address.
-            .collection('active_users')
-            .doc(props.route.params.item.data.email) // another user's email address.
-            .collection('messages')
-            .orderBy('sendAtTimeStamp', 'asc')
-            .onSnapshot(
-                async (docSnapShot) => {
-                    setMessages(
-                        docSnapShot.docs.map(
-                            (msg) => {
-                                return msg.data();
-                            }
-                        )
-                    )
-                    await firestore() // for seen feature.
-                        .collection('users')
-                        .doc(props.route.params.item.data.email)
-                        .collection('active_users')
-                        .doc(state.email)
-                        .collection('messages')
-                        .where('senderEmail', '==', props.route.params.item.data.email)
-                        .where('seenAt', '==', 'null')
-                        .where('visibility', '==', 'true')
-                        .get()
-                        .then(
-                            (snapshot) => {
-                                for (const doc of snapshot.docs) {
-                                    if (snapshot.docs.length == 0) break;
-                                    else {
-                                        doc.ref.update(
-                                            {
-                                                seenAt: new Date().toString()
-                                            }
-                                        )
-                                    }
-                                }
-                            }
-                    )
-                }
-            )
-    }
-
     useEffect(
         () => {
+            props.fetchData(props.route.params.item.data.email);
             const onBackPress = () => {
-                if (selection) {
-                    setSelection(false);
+                if (props.selections) {
+                    props.actionCreator('set_items_to_delete', []);
+                    props.actionCreator('set_selections', false);
                 }
+                return true;
             }
             const onAppStateChange = (state) => {
+                console.log('onAppStateCHange', state);
                 if (state != 'background' && state != 'inactive') {
-                    fetchData();
+                    props.fetchData(props.route.params.item.data.email);
                 }
             }
-            AppState.addEventListener('change', onAppStateChange)
-            BackHandler.addEventListener('hardwareBackPress', onBackPress)
+            const y = AppState.addEventListener('change', onAppStateChange)
+            const x = BackHandler.addEventListener('hardwareBackPress', onBackPress)
             return () => {
+                x;
+                y;
                 BackHandler.removeEventListener('hardwareBackPress', onBackPress);
                 AppState.removeEventListener('change', onAppStateChange);
             }
         }, []
     )
 
-
-    const onSend = async () => {
-        const packet = {
-            senderEmail: state.email,
-            recieverEmail: props.route.params.item.data.email,
-            message: newMessage,
-            sendAtTimeStamp: new Date().getTime().toString(),
-            sendAt: new Date().toString(),
-            visibility: 'true',
-            seenAt: 'null'
-        }
-
-        await fireMessengerAPI.post('/messages/sendMessage',
-            {
-                message: packet,
-                currentUserDetails: state,
-                receiverDetails: props.route.params.item.data
+    useEffect(
+        () => {
+            if (props.itemsToDelete.length === 0) {
+                props.actionCreator('set_selections', false);
+                props.actionCreator('set_is_deleting', false);
             }
-        )
+        }, [props.itemsToDelete]
+    )
+
+    const onSend = () => {
+        props.onSend(props.route.params.item.data);
     }
 
     const appendIndex = (index) => {
-        setItemToDelete([...itemToDelete, index]);
+        props.appendChatsIndex(index);
     }
 
-    const deleteChats = async () => {
-        console.log('messages', messages);
-        console.log('toDelete', itemToDelete);
-        const resultantData = [];
-
-        for (let i = 0; i < messages.length; i++) {
-            for (let j = 0; j < itemToDelete.length; j++) {
-                if (itemToDelete[j].index != i) {
-                    resultantData.push(messages[i]);
-                }
-                else {
-                    console.log('message to delete', messages[i])
-                    if (itemToDelete[j].sender == 'me') {
-                        await firestore()
-                            .collection('users')
-                            .doc(state.email)
-                            .collection('active_users')
-                            .doc(props.route.params.item.data.email)
-                            .collection('messages')
-                            .doc(messages[i].sendAtTimeStamp.toString())
-                            .update({ visibility: 'false' })
-                        await firestore()
-                            .collection('users')
-                            .doc(props.route.params.item.data.email)
-                            .collection('active_users')
-                            .doc(state.email)
-                            .collection('messages')
-                            .doc(messages[i].sendAtTimeStamp.toString())
-                            .update({ visibility: 'false' })
-                    }
-                    else {
-                        await firestore()
-                            .collection('users')
-                            .doc(props.route.params.item.data.email)
-                            .collection('active_users')
-                            .doc(state.email)
-                            .collection('messages')
-                            .doc(messages[i].createdAt.toString())
-                            .update({ visibility: 'false' })
-                    }
-                }
-            }
-        }
-        // setMessages(resultantData);
-        setItemToDelete([]);
+    const deleteChats = () => {
+        props.actionCreator('set_is_deleting', true);
+        props.deleteChats(props.route.params.item.data.email);
     }
-
 
     const search = (item) => {
-        for (let i = 0; i < itemToDelete.length; i++) {
-            if (itemToDelete[i].index == item) {
+        for (let i = 0; i < props.itemsToDelete.length; i++) {
+            if (props.itemsToDelete[i].index == item) {
                 return true;
             }
         }
@@ -173,58 +82,38 @@ const ChatsScreen = (props) => {
     }
 
     const deleteIndex = (index) => {
-        var items = []
-        itemToDelete.forEach(
-            (data) => {
-                if (data.index != index) {
-                    items.push(data)
-                }
-            }
-        )
-        setItemToDelete(items);
+        props.deleteChatsIndex(index);
     }
 
     const SenderImageComponent = () => {
         return <Image
-            source={state.photoURL ? { uri: state.photoURL } : require('../assets/userImage.png')}
-            style={{
-                height: 40,
-                width: 40,
-                borderRadius: 30,
-                backgroundColor: 'white'
-            }}
+            source={props.photoURL ? { uri: props.photoURL } : require('../assets/userImage.png')}
+            style={styles.userImageStyle}
         />
     }
 
     const RecieverImageComponent = () => {
         return <Image
             source={props.route.params.item.data.photoURL ? { uri: props.route.params.item.data.photoURL } : require('../assets/userImage.png')}
-            style={{
-                height: 40,
-                width: 40,
-                borderRadius: 30,
-                backgroundColor: 'white'
-            }}
+            style={styles.userImageStyle}
         />
     }
 
     const SenderMessageComponent = ({ color, item, index }) => {
-        return <View style={{ paddingLeft: 100, backgroundColor: color, flexDirection: 'row', justifyContent: 'flex-end' }}>
+        return <View style={{ ...styles.senderMessageComponentStyle, backgroundColor: color }}>
             <View style={styles.senderMessageStyle}>
                 <Text
-                    style={{ fontSize: 20, textAlign: 'right' }}
+                    style={styles.senderMessageTextStyle}
                     onLongPress={
                         () => {
                             appendIndex({ index, sender: 'me' });
-                            setSelection(true);
+                            props.actionCreator('set_selections', true);
                         }
                     }
                     onPress={
                         () => {
-                            console.log('selection', selection);
-                            if (selection) {
+                            if (props.selections) {
                                 if (search(index)) {
-                                    console.log('true inside onPress')
                                     deleteIndex(index);
                                 }
                                 else {
@@ -243,20 +132,20 @@ const ChatsScreen = (props) => {
     }
 
     const RecieverMessageComponent = ({ color, item, index }) => {
-        return <View style={{ paddingRight: 100, backgroundColor: color, flexDirection: 'row', justifyContent: 'flex-start' }}>
+        return <View style={{ ...styles.recieverMessageComponentStyle, backgroundColor: color }}>
             <RecieverImageComponent />
             <Text
                 style={styles.recieverMessageStyle}
                 onLongPress={
                     () => {
                         appendIndex({ index, sender: 'not_me' });
-                        setSelection(true);
+                        // setSelection(true);
+                        props.actionCreator('set_selections', true);
                     }
                 }
                 onPress={
                     () => {
-                        if (selection) {
-                            if (selection) {
+                        if (props.selections) {
                                 if (search(index)) {
                                     console.log('true inside onPress')
                                     deleteIndex(index);
@@ -265,101 +154,83 @@ const ChatsScreen = (props) => {
                                     appendIndex({ index, sender: 'me' });
                                 }
                             }
-                        }
                     }
                 }
             >{item.message}</Text>
         </View>
     }
 
+    const ModalContext = () => {
+        return <View>
+            <Text>Message: {props.messages[props.itemsToDelete[0].index].message}</Text>
+            <Text>Sender Email: {props.messages[props.itemsToDelete[0].index].senderEmail}</Text>
+            <Text>Receiver Email: {props.messages[props.itemsToDelete[0].index].recieverEmail}</Text>
+            <Text>Send At: {props.messages[props.itemsToDelete[0].index].sendAt}</Text>
+            <Text>Seen At: {props.messages[props.itemsToDelete[0].index].seenAt != 'null' ? props.messages[itemsToDelete[0].index].seenAt : 'Not seen yet'}</Text>
+        </View>
+    }
+
+    const DetailsModal = () => {
+        return <Modal
+            visible={props.showDetails}
+            transparent={true}
+        >
+            <View style={styles.modalRootStyle}>
+                <View style={styles.modalViewStyle}>
+                    <ScrollView style={{ flex: 1 }}>
+                        {props.itemsToDelete.length ? <ModalContext /> : null}
+                    </ScrollView>
+                    <Button
+                        label='Close'
+                        onPressCallback={
+                            () => {
+                                props.actionCreator('set_show_details', false)
+                            }
+                        }
+                        visible={true}
+                    />
+                </View>
+            </View>
+        </Modal>
+    }
+
     return (
 
         <View style={styles.rootStyle}>
-            {itemToDelete.length != 0
+            <Spinner isVisible={props.isDeleting} />
+            {props.itemsToDelete.length != 0
                 ? <View
-                    style={{
-                        flexDirection: 'row',
-                        justifyContent: 'space-around'
-                    }}
+                    style={style.tempHeaderStyle}
                 >
                     <Button
                         label='Delete'
                         onPressCallback={deleteChats}
                         visible={true}
-                        additionStyling={{ marginHorizontal: 10, width: '40%' }}
+                        additionStyling={styles.additionButtonStylingForTempHeader}
                     />
                     <Button
                         label='Info'
-                        onPressCallback={() => setShowDetails(true)}
-                        visible={itemToDelete.length == 1}
-                        additionStyling={{ marginHorizontal: 10, width: '40%' }}
+                        onPressCallback={() => props.actionCreator('set_show_details', true)}
+                        visible={props.itemsToDelete.length == 1}
+                        additionStyling={styles.additionButtonStylingForTempHeader}
                     />
                 </View>
                 : null
             }
-            <View style={{ flex: 1, padding: 10 }}>
-                <Modal
-                    visible={showDetails}
-                    transparent={true}
-                >
-                    <View
-                        style={{
-                            flex: 1,
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            backgroundColor: 'rgba(0,0,0,0.3)',
-                        }}
-                    >
-                        <View
-                            style={{
-                                padding: 15,
-                                borderWidth: 1,
-                                width: 350,
-                                backgroundColor: 'white',
-                                borderRadius: 20,
-                                height: 250
-                            }}
-                        >
-                            <ScrollView
-                                style={{
-                                    flex: 1,
-                                }}
-                            >
-                                {itemToDelete.length ?
-                                    <View>
-                                        <Text>Message: {messages[itemToDelete[0].index].message}</Text>
-                                        <Text>Sender Email: {messages[itemToDelete[0].index].senderEmail}</Text>
-                                        <Text>Receiver Email: {messages[itemToDelete[0].index].recieverEmail}</Text>
-                                        <Text>Send At: {messages[itemToDelete[0].index].sendAt}</Text>
-                                        <Text>Seen At: {messages[itemToDelete[0].index].seenAt != 'null' ? messages[itemToDelete[0].index].seenAt : 'Not seen yet'}</Text>
-                                    </View> : null
-                                }
-                            </ScrollView>
-                            <Button
-                                label='Close'
-                                onPressCallback={
-                                    () => {
-                                        setShowDetails(false)
-                                    }
-                                }
-                                visible={true}
-                            />
-                        </View>
-                    </View>
-                </Modal>
+            <View style={styles.subRootStyle}>
+                <DetailsModal />
                 <FlatList
-                    data={messages}
+                    data={props.messages}
                     keyExtractor={
                         item => item.sendAtTimeStamp.toString()
                     }
-
                     renderItem={
                         ({ item, index }) => {
                             if (item.visibility == 'true') {
                                 var color = search(index) == true ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0)'
                                 return <View>
                                     {
-                                        item.senderEmail == state.email
+                                        item.senderEmail == props.email
                                             ?
                                             <SenderMessageComponent color={color} item={item} index={index} />
                                             :
@@ -374,90 +245,64 @@ const ChatsScreen = (props) => {
             <View style={styles.inputWidget}>
                 <TextInput
                     style={styles.inputStyle}
-                    value={newMessage}
+                    value={props.newMessage}
                     onChangeText={
                         (newMsg) => {
-                            setNewMessage(newMsg);
+                            // setNewMessage(newMsg);
+                            props.actionCreator('set_new_message', newMsg);
                         }
                     }
                     placeholderTextColor='white'
                     placeholder='Type your message...'
                 />
-                <TouchableOpacity
-                    style={styles.sendButtonStyle}
-                    onPress={
-                        () => {
-                            onSend();
-                            setNewMessage('');
+                {props.isSending ?
+                    <TouchableOpacity
+                        style={
+                            styles.sendButtonStyle
                         }
-                    }
-                >
-                    <Text style={{ color: 'white' }}>Send</Text>
-                </TouchableOpacity>
+                    >
+                        <ActivityIndicator size='small' color='white' />
+                    </TouchableOpacity>
+                    :
+                    <TouchableOpacity
+                        style={styles.sendButtonStyle}
+                        onPress={
+                            () => {
+                                onSend();
+                                // setNewMessage('');
+                                props.actionCreator('set_new_message', '');
+                            }
+                        }
+                    >
+                        <Text style={{ color: 'white' }}>Send</Text>
+                    </TouchableOpacity>
+                }
             </View>
-        </View >
+        </View>
     )
 }
 
-
-const styles = StyleSheet.create(
-    {
-        rootStyle: {
-            flex: 1,
-            justifyContent: 'space-between'
-
-        },
-        senderMessageStyle: {
-            borderRadius: 10,
-            backgroundColor: 'lightblue',
-            color: 'black',
-            alignSelf: 'flex-end',
-            textAlign: 'right',
-            padding: 5,
-            margin: 10
-        },
-        recieverMessageStyle: {
-            borderRadius: 10,
-            backgroundColor: 'lightgreen',
-            color: 'black',
-            fontSize: 20,
-            alignSelf: 'flex-start',
-            padding: 5,
-            margin: 10
-        },
-        inputWidget: {
-            flexDirection: 'row',
-            marginVertical: 10,
-            marginStart: 10,
-            justifyContent: 'space-between'
-        },
-        inputStyle: {
-            height: 50,
-            borderWidth: 1,
-            borderRadius: 10,
-            paddingStart: 10,
-            fontSize: 20,
-            marginRight: 10,
-            flex: 1,
-            borderColor: 'white',
-            color: 'white'
-        },
-        sendButtonStyle: {
-            borderRadius: 10,
-            borderWidth: 1,
-            padding: 10,
-            marginHorizontal: 10,
-            height: 50,
-            width: 75,
-            justifyContent: 'center',
-            alignItems: 'center',
-            borderColor: 'white',
-        },
-        seenAtStyle: {
-            marginRight: 10,
-            textAlign: 'right'
-        }
+const mapStatesToProps = (state) => {
+    return {
+        photoURL: state.auth.user.photoURL,
+        itemsToDelete: state.chats.itemsToDelete,
+        messages: state.chats.messages,
+        selections: state.chats.selections,
+        showDetails: state.chats.showDetails,
+        newMessge: state.chats.newMessage,
+        isSending: state.chats.isSending,
+        isDeleting: state.chats.isDeleting,
+        email: state.auth.user.email
     }
-);
+}
 
-export default ChatsScreen;
+export default connect(mapStatesToProps,
+    {
+        actionCreator,
+        fetchData,
+        onSend,
+        appendChatsIndex,
+        deleteChatsIndex,
+        deleteChats
+    }
+)(ChatsScreen);

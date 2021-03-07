@@ -1,5 +1,3 @@
-/* eslint-disable react-native/no-inline-styles */
-/* eslint-disable prettier/prettier */
 import React, { useEffect } from 'react';
 import { connect } from 'react-redux';
 import { View, ScrollView, StyleSheet } from 'react-native';
@@ -23,14 +21,13 @@ const SignupScreen = (props) => {
     useEffect(
         () => {
             props.actionCreator('clear');
-            // eslint-disable-next-line react-hooks/exhaustive-deps
         }, []
     );
 
     return <View style={styles.rootStyle}>
-        <ScrollView
+        {/* <ScrollView
             showsVerticalScrollIndicator={false}
-        >
+        > */}
             <Input
                 label="Enter your name"
                 value={props.userName}
@@ -117,7 +114,7 @@ const SignupScreen = (props) => {
                 type="signup"
                 navigation={() => props.navigation.navigate('Login')}
             />
-        </ScrollView>
+        {/* </ScrollView> */}
     </View>;
 };
 

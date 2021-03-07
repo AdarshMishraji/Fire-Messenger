@@ -22,16 +22,13 @@ export const FacebookAuthSignup = async (setData, setError) => {
                   console.log(new_data);
                   setData('Facebook', new_data);
               })
-              .catch((err) => {
-            // console.log(err.response.data, err.response.status)
-            // dispatch({ type: 'set_error', payload: err.response.data.errMsg });
+            .catch((err) => {
             setError(err);
           });
       }
     }
   } catch (err) {
     console.log(err);
-    // dispatch({ type: 'set_error', payload: err });
     setError(err);
   }
 };
